@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Layout, BarChart2, HelpCircle, Check } from "lucide-react";
+import { Check } from "lucide-react";
 
 import { VoteChart } from "./VoteChart";
 import { Presentation } from "lucide-react";
@@ -31,10 +31,10 @@ export function SlidePresentation({
 }: SlideProps) {
   return (
     <div className={cn(
-      "w-full h-full bg-background rounded-2xl shadow-2xl border p-12 flex flex-col justify-center items-center relative overflow-hidden transition-all duration-500",
+      "w-full h-full bg-background rounded-2xl shadow-2xl border p-6 md:p-12 flex flex-col justify-center items-center relative overflow-hidden transition-all duration-500",
       type === "vote" && "bg-gradient-to-br from-background to-blue-50/30",
       type === "quiz" && "bg-gradient-to-br from-background to-purple-50/30",
-      isFullScreen && "p-20 border-none shadow-none bg-transparent",
+      isFullScreen && "p-12 md:p-20 border-none shadow-none bg-transparent",
       className
     )}>
       {/* Decorative Slide Background Element */}
@@ -46,27 +46,27 @@ export function SlidePresentation({
         type === "quiz" && "bg-purple-500"
       )} />
 
-
-      <div className={cn("z-10 w-full flex flex-col items-center px-4 sm:px-0", isFullScreen ? "max-w-6xl" : "max-w-4xl")}>
-        {title ? (
+      <div className={cn(
+        "z-10 w-full flex flex-col items-center justify-center gap-6 md:gap-10 px-4 sm:px-0", 
+        isFullScreen ? "max-w-6xl" : "max-w-4xl"
+      )}>
+        {title && (
           <h1 className={cn(
             "font-extrabold tracking-tighter text-foreground text-center animate-in fade-in slide-in-from-top-4 duration-700 break-words w-full",
             isFullScreen 
-              ? "text-4xl sm:text-6xl md:text-8xl mb-10 md:mb-16" 
-              : "text-2xl sm:text-4xl md:text-6xl mb-6 md:mb-10"
+              ? "text-4xl sm:text-6xl md:text-8xl" 
+              : "text-2xl sm:text-4xl md:text-6xl"
           )}>
             {title}
           </h1>
-        ) : (
-          <div className={isFullScreen ? "h-24 mb-16" : "h-16 mb-10"} />
         )}
 
         {content && (
           <div className={cn(
             "text-muted-foreground text-center whitespace-pre-wrap leading-relaxed animate-in fade-in fill-mode-both delay-200 duration-700 break-words w-full",
             isFullScreen 
-              ? "text-lg sm:text-2xl md:text-4xl max-w-5xl mb-10 md:mb-16" 
-              : "text-sm sm:text-lg md:text-2xl max-w-3xl mb-8 md:mb-12"
+              ? "text-lg sm:text-2xl md:text-4xl max-w-5xl" 
+              : "text-sm sm:text-lg md:text-2xl max-w-3xl"
           )}>
             {content}
           </div>
@@ -74,9 +74,9 @@ export function SlidePresentation({
 
         {/* 투표/퀴즈 옵션 표시 또는 결과 차트 표시 */}
         {(type === "vote" || type === "quiz") && options.length > 0 && (
-          <div className="w-full mt-4 animate-in fade-in zoom-in-95 duration-700 delay-500">
+          <div className="w-full animate-in fade-in zoom-in-95 duration-700 delay-500">
             {votes ? (
-              <div className={cn("w-full bg-background/40 backdrop-blur-sm p-8 rounded-[2rem] border border-white/20", isFullScreen && "p-12")}>
+              <div className={cn("w-full bg-background/40 backdrop-blur-sm p-4 md:p-8 rounded-[2rem] border border-white/20", isFullScreen && "p-12")}>
                  <VoteChart 
                    votes={votes} 
                    options={options} 
@@ -133,7 +133,6 @@ export function SlidePresentation({
           </div>
         )}
       </div>
-
     </div>
   );
 }
