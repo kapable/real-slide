@@ -305,17 +305,13 @@ function ParticipantView() {
 
       {/* Floating Bottom Navigation */}
       {participantId && currentSlide && (
-        <div className="fixed bottom-0 left-0 right-0 px-4 pb-4 sm:pb-8 sm:bottom-8 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-50 flex justify-center pointer-events-none">
-          <div className="w-full max-w-lg sm:w-auto pointer-events-auto">
-            <ParticipantControls
-              sessionId={resolvedSessionId}
-              slideId={currentSlide.id}
-              participantId={participantId}
-              nickname={nickname}
-              broadcastFn={broadcastFn}
-            />
-          </div>
-        </div>
+        <ParticipantControls
+          sessionId={resolvedSessionId}
+          slideId={currentSlide.id}
+          participantId={participantId}
+          nickname={nickname}
+          broadcastFn={broadcastFn}
+        />
       )}
     </div>
   );
