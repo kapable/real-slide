@@ -24,7 +24,6 @@ export default function ParticipantControls({
   const [handUp, setHandUp] = useState(false);
   const [wordcloudInput, setWordcloudInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [keyboardOffset, setKeyboardOffset] = useState(0);
 
   // Fetch initial hand status
   useEffect(() => {
@@ -40,26 +39,6 @@ export default function ParticipantControls({
     if (sessionId && participantId) fetchStatus();
   }, [sessionId, participantId]);
   
-  // Handle mobile keyboard using VisualViewport API
-  useEffect(() => {
-    if (!window.visualViewport) return;
-
-    const handleViewportChange = () => {
-      const vv = window.visualViewport!;
-      // Calculate how much the viewport has been reduced (usually by keyboard)
-      const offset = window.innerHeight - vv.height;
-      setKeyboardOffset(Math.max(0, offset));
-    };
-
-    window.visualViewport.addEventListener("resize", handleViewportChange);
-    window.visualViewport.addEventListener("scroll", handleViewportChange);
-
-    return () => {
-      window.visualViewport?.removeEventListener("resize", handleViewportChange);
-      window.visualViewport?.removeEventListener("scroll", handleViewportChange);
-    };
-  }, []);
-
   const handleToggleHand = async () => {
     setIsLoading(true);
     try {
@@ -86,7 +65,6 @@ export default function ParticipantControls({
       } else {
         const errorData = await res.json();
         console.error("Failed to toggle hand:", errorData);
-        alert(`손 들기 실패: ${errorData.message || errorData.error || "서버 오류"}`);
       }
     } catch (error) {
       console.error("Error toggling hand:", error);
@@ -125,22 +103,10 @@ export default function ParticipantControls({
   };
 
   return (
-    <div 
-      style={{ 
-        bottom: keyboardOffset > 0 
-          ? `${keyboardOffset + 12}px` 
-          : undefined 
-      }}
-      className={cn(
-        "fixed left-0 right-0 z-50 flex justify-center px-4 pointer-events-none transition-[bottom] duration-300 ease-out",
-        keyboardOffset > 0 ? "bottom-0" : "bottom-4",
-        "sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:bottom-8 sm:px-0"
-      )}
-    >
+    <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center px-4 mb-4 sm:mb-8 pointer-events-none">
       <div className={cn(
         "glass px-6 py-5 rounded-[2.5rem] flex flex-col gap-5 glass-shadow border-white/20 animate-in slide-in-from-bottom-12 duration-700 w-full sm:w-[500px] pointer-events-auto",
-        "bg-background/95 backdrop-blur-3xl shadow-[0_12px_60px_-15px_rgba(0,0,0,0.4)]",
-        keyboardOffset > 0 && "animate-none shadow-none"
+        "bg-background/95 backdrop-blur-3xl shadow-[0_12px_60px_-15px_rgba(0,0,0,0.4)]"
       )}>
         {/* 1. Top Row: Large Input Field */}
         <form onSubmit={handleSubmitWordcloud} className="w-full flex flex-col gap-4">
