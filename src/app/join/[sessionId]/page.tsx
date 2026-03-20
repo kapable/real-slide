@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ParticipantFullScreen } from "@/components/ParticipantFullScreen";
 import { 
   Users, 
   Presentation as PresentationIcon, 
@@ -20,7 +21,8 @@ import {
   HelpCircle, 
   BarChart2,
   Clock,
-  ArrowLeft
+  ArrowLeft,
+  Maximize2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -38,6 +40,7 @@ function ParticipantView() {
   const [hasVoted, setHasVoted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isFullScreen, setIsFullScreen] = useState(false);
   const resolvedRef = useRef("");
   const channelRef = useRef<any>(null);
 
@@ -216,15 +219,30 @@ function ParticipantView() {
           {/* Slide Box */}
           <div className="relative aspect-video w-full group">
             {currentSlide ? (
-              <SlidePresentation
-                title={currentSlide.title}
-                content={currentSlide.content}
-                type={currentSlide.type as any}
-                options={currentSlide.options ? JSON.parse(currentSlide.options as string) : []}
-                correctAnswer={currentSlide.correct_answer ?? undefined}
-                showResult={currentSlide.show_result}
-                className="shadow-2xl border-none"
-              />
+              <>
+                <SlidePresentation
+                  title={currentSlide.title}
+                  content={currentSlide.content}
+                  type={currentSlide.type as any}
+                  options={currentSlide.options ? JSON.parse(currentSlide.options as string) : []}
+                  correctAnswer={currentSlide.correct_answer ?? undefined}
+                  showResult={currentSlide.show_result}
+                  className="shadow-2xl border-none h-full"
+                />
+                
+                {/* Fullscreen Trigger Overlay */}
+                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="h-10 px-4 rounded-full bg-slate-900/80 backdrop-blur-md border border-white/10 text-white flex items-center gap-2 shadow-2xl hover:bg-slate-900 transition-all font-black uppercase text-[10px] tracking-widest scale-90 group-hover:scale-100"
+                    onClick={() => setIsFullScreen(true)}
+                  >
+                    <Maximize2 className="h-3.5 w-3.5" />
+                    <span>전체화면</span>
+                  </Button>
+                </div>
+              </>
             ) : (
               <div className="h-full bg-background rounded-2xl border border-dashed flex flex-col items-center justify-center space-y-4 text-muted-foreground opacity-30">
                 <Clock className="h-12 w-12" />
@@ -232,6 +250,15 @@ function ParticipantView() {
               </div>
             )}
           </div>
+
+          {/* Fullscreen Component */}
+          {currentSlide && (
+             <ParticipantFullScreen
+               slide={currentSlide}
+               isOpen={isFullScreen}
+               onClose={() => setIsFullScreen(false)}
+             />
+          )}
 
           {/* Interaction area */}
           {currentSlide && (currentSlide.type === "vote" || currentSlide.type === "quiz") && (
