@@ -216,10 +216,26 @@ function ParticipantView() {
             </div>
           )}
 
-          {/* Slide Box */}
-          <div className="relative aspect-video w-full group">
-            {currentSlide ? (
-              <>
+          {/* Slide Box with Header Control */}
+          <div className="flex flex-col gap-2 group">
+            <div className="flex items-center justify-between gap-3 px-2">
+              <div className="flex items-center gap-2 opacity-50 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                <PresentationIcon className="h-3.5 w-3.5" />
+                <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">실시간 슬라이드</span>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="h-9 min-w-[100px] px-4 rounded-xl bg-slate-100/80 hover:bg-slate-200 border border-slate-200/50 shadow-sm transition-all active:scale-95 gap-2 flex-shrink-0 touch-manipulation"
+                onClick={() => setIsFullScreen(true)}
+              >
+                <Maximize2 className="h-4 w-4" />
+                <span className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap">전체화면</span>
+              </Button>
+            </div>
+
+            <div className="relative aspect-video w-full">
+              {currentSlide ? (
                 <SlidePresentation
                   title={currentSlide.title}
                   content={currentSlide.content}
@@ -229,26 +245,13 @@ function ParticipantView() {
                   showResult={currentSlide.show_result}
                   className="shadow-2xl border-none h-full"
                 />
-                
-                {/* Fullscreen Trigger Overlay */}
-                <div className="absolute top-4 right-4 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300">
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="h-10 w-10 rounded-full bg-slate-900/80 backdrop-blur-md border border-white/10 text-white shadow-2xl hover:bg-slate-900 transition-all active:scale-95"
-                    onClick={() => setIsFullScreen(true)}
-                    title="전체화면"
-                  >
-                    <Maximize2 className="h-5 w-5" />
-                  </Button>
+              ) : (
+                <div className="h-full bg-background rounded-2xl border border-dashed flex flex-col items-center justify-center space-y-4 text-muted-foreground opacity-30">
+                  <Clock className="h-12 w-12" />
+                  <p className="font-bold uppercase tracking-[0.2em] text-sm">발표를 기다리는 중...</p>
                 </div>
-              </>
-            ) : (
-              <div className="h-full bg-background rounded-2xl border border-dashed flex flex-col items-center justify-center space-y-4 text-muted-foreground opacity-30">
-                <Clock className="h-12 w-12" />
-                <p className="font-bold uppercase tracking-[0.2em] text-sm">발표를 기다리는 중...</p>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Fullscreen Component */}
