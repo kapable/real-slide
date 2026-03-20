@@ -104,7 +104,7 @@ export default function ParticipantControls({
   };
 
   return (
-    <div className="glass px-4 py-2.5 rounded-3xl flex items-center gap-3 glass-shadow border-white/20 animate-in slide-in-from-bottom-8 duration-500">
+    <div className="glass px-4 py-2.5 rounded-3xl flex items-center gap-2 sm:gap-3 glass-shadow border-white/20 animate-in slide-in-from-bottom-8 duration-500 w-full sm:w-auto">
       {/* Hands Up Button */}
       <Button
         onClick={handleToggleHand}
@@ -129,8 +129,8 @@ export default function ParticipantControls({
       <div className="w-[1px] h-6 bg-muted-foreground/10 mx-1" />
 
       {/* Wordcloud Input */}
-      <form onSubmit={handleSubmitWordcloud} className="flex items-center gap-2 group">
-        <div className="relative flex items-center w-48 sm:w-64">
+      <form onSubmit={handleSubmitWordcloud} className="flex-1 sm:flex-initial flex items-center gap-2 group">
+        <div className="relative flex items-center flex-1 sm:w-64">
            <Cloud className="absolute left-3 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
            <Input
             type="text"
@@ -138,7 +138,7 @@ export default function ParticipantControls({
             value={wordcloudInput}
             onChange={(e) => setWordcloudInput(e.target.value)}
             disabled={isLoading}
-            className="h-12 pl-10 pr-4 rounded-2xl bg-background/50 border-muted focus-visible:ring-primary/20 text-xs font-medium"
+            className="h-12 pl-10 pr-4 rounded-2xl bg-background/50 border-muted focus-visible:ring-primary/20 text-base font-medium"
           />
         </div>
         <Button
