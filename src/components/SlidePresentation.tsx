@@ -57,11 +57,13 @@ export function SlidePresentation({
         <span>{type}</span>
       </div>
 
-      <div className={cn("z-10 w-full flex flex-col items-center", isFullScreen ? "max-w-6xl" : "max-w-4xl")}>
+      <div className={cn("z-10 w-full flex flex-col items-center px-4 sm:px-0", isFullScreen ? "max-w-6xl" : "max-w-4xl")}>
         {title ? (
           <h1 className={cn(
-            "font-extrabold tracking-tighter text-foreground text-center animate-in fade-in slide-in-from-top-4 duration-700",
-            isFullScreen ? "text-7xl md:text-8xl mb-16" : "text-5xl md:text-6xl mb-10"
+            "font-extrabold tracking-tighter text-foreground text-center animate-in fade-in slide-in-from-top-4 duration-700 break-words w-full",
+            isFullScreen 
+              ? "text-4xl sm:text-6xl md:text-8xl mb-10 md:mb-16" 
+              : "text-2xl sm:text-4xl md:text-6xl mb-6 md:mb-10"
           )}>
             {title}
           </h1>
@@ -71,8 +73,10 @@ export function SlidePresentation({
 
         {content && (
           <div className={cn(
-            "text-muted-foreground text-center whitespace-pre-wrap leading-relaxed animate-in fade-in fill-mode-both delay-200 duration-700",
-            isFullScreen ? "text-3xl md:text-4xl max-w-5xl mb-16" : "text-xl md:text-2xl max-w-3xl mb-12"
+            "text-muted-foreground text-center whitespace-pre-wrap leading-relaxed animate-in fade-in fill-mode-both delay-200 duration-700 break-words w-full",
+            isFullScreen 
+              ? "text-lg sm:text-2xl md:text-4xl max-w-5xl mb-10 md:mb-16" 
+              : "text-sm sm:text-lg md:text-2xl max-w-3xl mb-8 md:mb-12"
           )}>
             {content}
           </div>

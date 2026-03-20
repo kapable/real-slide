@@ -234,12 +234,12 @@ function ParticipantView() {
                 <div className="absolute top-4 right-4 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300">
                   <Button
                     variant="secondary"
-                    size="sm"
-                    className="h-10 px-4 rounded-full bg-slate-900/80 backdrop-blur-md border border-white/10 text-white flex items-center gap-2 shadow-2xl hover:bg-slate-900 transition-all font-black uppercase text-[10px] tracking-widest"
+                    size="icon"
+                    className="h-10 w-10 rounded-full bg-slate-900/80 backdrop-blur-md border border-white/10 text-white shadow-2xl hover:bg-slate-900 transition-all active:scale-95"
                     onClick={() => setIsFullScreen(true)}
+                    title="전체화면"
                   >
-                    <Maximize2 className="h-3.5 w-3.5" />
-                    <span className="sm:inline">전체화면</span>
+                    <Maximize2 className="h-5 w-5" />
                   </Button>
                 </div>
               </>
