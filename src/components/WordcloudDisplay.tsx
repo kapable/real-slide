@@ -191,35 +191,19 @@ export default function WordcloudDisplay({
         }
       `}</style>
 
-      {!compact && (
-        <div className="absolute top-0 right-0 p-8 opacity-5">
-          <Cloud className="h-48 w-48" />
-        </div>
-      )}
-
-      {!compact && (
-        <div className="flex items-center gap-3 mb-6 relative z-10">
-          <div className="bg-primary/10 p-2 rounded-xl text-primary">
-            <Cloud className="h-5 w-5" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-lg tracking-tight">실시간 워드클라우드</h3>
-            <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground opacity-60">총 {items.reduce((acc, i) => acc + i.count, 0)}개의 의견</p>
-          </div>
-          
-          {/* Presenter delete controls */}
-          {isPresenter && items.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
-              onClick={handleDeleteAll}
-              disabled={isDeleting}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              <span className="text-[10px] font-bold tracking-wide">전체 삭제</span>
-            </Button>
-          )}
+      {/* Presenter delete controls - discretely placed at bottom */}
+      {isPresenter && items.length > 0 && (
+        <div className="absolute bottom-4 right-4 z-20">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={handleDeleteAll}
+            disabled={isDeleting}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            <span className="text-[10px] font-bold tracking-wide">결과 초기화</span>
+          </Button>
         </div>
       )}
 

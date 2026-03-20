@@ -46,16 +46,6 @@ export function SlidePresentation({
         type === "quiz" && "bg-purple-500"
       )} />
 
-      {/* Slide Type Indicator */}
-      <div className={cn(
-        "absolute top-8 left-8 flex items-center gap-2 text-muted-foreground/40 font-bold uppercase tracking-[0.2em] text-[10px]",
-        isFullScreen && "top-12 left-12 text-xs"
-      )}>
-        {type === "slide" && <Layout className="h-3.5 w-3.5" />}
-        {type === "vote" && <BarChart2 className="h-3.5 w-3.5" />}
-        {type === "quiz" && <HelpCircle className="h-3.5 w-3.5" />}
-        <span>{type}</span>
-      </div>
 
       <div className={cn("z-10 w-full flex flex-col items-center px-4 sm:px-0", isFullScreen ? "max-w-6xl" : "max-w-4xl")}>
         {title ? (
@@ -144,13 +134,6 @@ export function SlidePresentation({
         )}
       </div>
 
-      {/* Slide Page Indicator */}
-      <div className={cn(
-        "absolute bottom-8 right-8 text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em]",
-        isFullScreen && "bottom-12 right-12 text-xs"
-      )}>
-        Real-Slide Presentation Platform
-      </div>
     </div>
   );
 }
