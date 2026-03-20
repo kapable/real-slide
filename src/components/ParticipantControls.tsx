@@ -105,82 +105,81 @@ export default function ParticipantControls({
 
   return (
     <div className={cn(
-      "glass px-4 py-4 sm:px-6 sm:py-3 rounded-t-[2.5rem] sm:rounded-[2.5rem] flex flex-col sm:flex-row items-center gap-4 glass-shadow border-white/20 animate-in slide-in-from-bottom-12 duration-700 w-full sm:w-auto",
-      "bg-background/90 backdrop-blur-2xl shadow-[0_-8px_40px_-15px_rgba(0,0,0,0.2)]"
+      "glass px-6 py-5 rounded-t-[2.5rem] sm:rounded-[2.5rem] flex flex-col gap-5 glass-shadow border-white/20 animate-in slide-in-from-bottom-12 duration-700 w-full sm:w-[500px]",
+      "bg-background/95 backdrop-blur-3xl shadow-[0_-12px_50px_-15px_rgba(0,0,0,0.3)]"
     )}>
-      {/* Hand Raise Section */}
-      <div className="flex items-center justify-between w-full sm:w-auto gap-4">
-        <Button
-          onClick={handleToggleHand}
-          disabled={isLoading}
-          variant={handUp ? "destructive" : "secondary"}
-          size="lg"
-          className={cn(
-            "h-14 sm:h-12 px-6 rounded-2xl gap-3 font-bold transition-all active:scale-[0.98] relative overflow-hidden group",
-            handUp 
-              ? "bg-red-500 hover:bg-red-600 shadow-xl shadow-red-500/20" 
-              : "bg-muted/50 hover:bg-muted border-none"
-          )}
-        >
-          {isLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : (
-            <Hand className={cn("h-5 w-5 transition-transform group-hover:rotate-12", handUp && "fill-current")} />
-          )}
-          <span className="text-sm font-black uppercase tracking-tighter">
-            손 {handUp ? "내리기" : "들기"}
-          </span>
-          {handUp && (
-            <span className="absolute top-0 right-0 flex h-2 w-2 m-1">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-            </span>
-          )}
-        </Button>
-
-        {/* Mobile Divider Text */}
-        <div className="sm:hidden flex flex-col items-end">
-          <span className="text-[10px] font-black uppercase tracking-widest text-primary/40 leading-none">Real-Slide</span>
-          <span className="text-[10px] font-bold text-muted-foreground leading-none">Interactive</span>
-        </div>
-      </div>
-
-      <div className="hidden sm:block w-[1px] h-8 bg-muted-foreground/20 mx-2" />
-
-      {/* Main Interaction Form (Wordcloud) */}
-      <form onSubmit={handleSubmitWordcloud} className="w-full sm:w-auto flex flex-1 items-center gap-3 group">
-        <div className="relative flex items-center flex-1 sm:w-80">
-           <div className="absolute left-4 bg-primary/10 p-1.5 rounded-lg text-primary transition-colors group-focus-within:bg-primary group-focus-within:text-white">
-             <Cloud className="h-4 w-4" />
-           </div>
-           <Input
+      {/* 1. Top Row: Large Input Field */}
+      <form onSubmit={handleSubmitWordcloud} className="w-full flex flex-col gap-4">
+        <div className="relative group">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 bg-primary/10 p-2 rounded-xl text-primary transition-all group-focus-within:bg-primary group-focus-within:text-white">
+            <Cloud className="h-5 w-5" />
+          </div>
+          <Input
             type="text"
-            placeholder="여러분의 생각을 들려주세요..."
+            placeholder="여러분의 생각을 자유롭게 입력하세요..."
             value={wordcloudInput}
             onChange={(e) => setWordcloudInput(e.target.value)}
             disabled={isLoading}
             className={cn(
-              "h-14 pl-14 pr-4 rounded-2xl bg-muted/30 border-none transition-all",
-              "focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:bg-muted/50 text-base font-semibold placeholder:text-muted-foreground/50"
+              "h-16 pl-16 pr-4 rounded-2xl bg-muted/40 border-2 border-transparent transition-all text-lg font-bold placeholder:text-muted-foreground/40",
+              "focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:border-primary/20 focus-visible:bg-muted/60"
             )}
           />
         </div>
-        <Button
-          type="submit"
-          disabled={isLoading || !wordcloudInput.trim()}
-          size="lg"
-          className="h-14 px-8 rounded-2xl shadow-xl shadow-primary/20 transition-all hover:translate-y-[-2px] active:translate-y-0 disabled:opacity-30 flex items-center gap-2"
-        >
-          {isLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : (
-            <>
-              <span className="font-black text-sm uppercase">전송</span>
-              <Sparkles className="h-4 w-4" />
-            </>
-          )}
-        </Button>
+
+        {/* 2. Bottom Row: Utility Buttons */}
+        <div className="flex items-center justify-between gap-4">
+          {/* Hand Raise (Left) */}
+          <Button
+            type="button"
+            onClick={handleToggleHand}
+            disabled={isLoading}
+            variant={handUp ? "destructive" : "secondary"}
+            size="lg"
+            className={cn(
+              "h-14 px-8 rounded-2xl gap-3 font-black transition-all active:scale-[0.95] relative overflow-hidden group",
+              handUp 
+                ? "bg-red-500 hover:bg-red-600 shadow-xl shadow-red-500/30" 
+                : "bg-muted/50 hover:bg-muted"
+            )}
+          >
+            {isLoading && !wordcloudInput.trim() ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Hand className={cn("h-5 w-5 transition-transform group-hover:rotate-12", handUp && "fill-current")} />
+            )}
+            <span className="text-xs uppercase tracking-widest">손 {handUp ? "내리기" : "들기"}</span>
+            {handUp && (
+              <span className="absolute top-0 right-0 flex h-2 w-2 m-1">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+              </span>
+            )}
+          </Button>
+
+          {/* Send Button (Right) */}
+          <Button
+            type="submit"
+            disabled={isLoading || !wordcloudInput.trim()}
+            size="lg"
+            className="h-14 px-10 rounded-2xl shadow-2xl shadow-primary/30 transition-all hover:translate-y-[-2px] active:translate-y-0 active:scale-[0.95] flex items-center gap-3 bg-primary hover:bg-primary/90"
+          >
+            {isLoading && wordcloudInput.trim() ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <>
+                <span className="font-black text-sm uppercase tracking-wider">전송</span>
+                <Sparkles className="h-5 w-5 text-primary-foreground/80" />
+              </>
+            )}
+          </Button>
+        </div>
       </form>
+
+      {/* Subtle branding hint */}
+      <div className="flex justify-center sm:hidden">
+        <div className="h-1 w-12 bg-muted-foreground/20 rounded-full" />
+      </div>
     </div>
   );
 }
