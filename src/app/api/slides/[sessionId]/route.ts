@@ -113,7 +113,7 @@ export async function POST(
           options: type === "slide"
             ? (metadata ? JSON.stringify(metadata) : null)
             : (options || null),
-          correct_answer: correctAnswer || null,
+          correct_answer: (correctAnswer !== undefined && correctAnswer !== null) ? correctAnswer : null,
         },
       ])
       .select()

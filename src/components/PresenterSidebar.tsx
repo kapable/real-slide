@@ -9,7 +9,10 @@ import {
   Layout, 
   Hash, 
   ArrowLeft,
+  Copy,
+  Check
 } from "lucide-react";
+import { useState } from "react";
 import { Slide } from "@/types";
 import { 
   Sidebar, 
@@ -43,6 +46,14 @@ export function PresenterSidebar({
   onAddSlideClick,
   shareCode 
 }: PresenterSidebarProps) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    if (!shareCode) return;
+    navigator.clipboard.writeText(shareCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
   return (
     <Sidebar className="border-r shadow-sm">
       <SidebarHeader className="p-4 border-b">
@@ -65,8 +76,22 @@ export function PresenterSidebar({
                 <Hash className="h-3 w-3" />
                 접속 코드
               </div>
-              <div className="text-2xl font-mono font-bold tracking-widest text-primary flex items-center justify-between">
-                {shareCode || "---"}
+              <div 
+                className="text-2xl font-mono font-bold tracking-[0.2em] text-primary flex items-center justify-between group/code cursor-pointer p-1 rounded-lg hover:bg-primary/5 transition-colors"
+                onClick={handleCopy}
+                title="클릭하여 코드 복사"
+              >
+                <span>{shareCode || "---"}</span>
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className={cn(
+                    "h-8 w-8 rounded-lg opacity-40 group-hover/code:opacity-100 transition-opacity",
+                    copied && "text-green-600 opacity-100"
+                  )}
+                >
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </Button>
               </div>
             </div>
           </div>

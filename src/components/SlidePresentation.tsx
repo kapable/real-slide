@@ -87,6 +87,7 @@ export function SlidePresentation({
                    votes={votes} 
                    options={options} 
                    correctAnswer={correctAnswer} 
+                   showResult={showResult}
                    className={isFullScreen ? "h-[450px]" : "h-[300px]"}
                  />
               </div>
@@ -96,26 +97,30 @@ export function SlidePresentation({
                   <div
                     key={index}
                     className={cn(
-                      "rounded-2xl font-bold text-center border shadow-sm transition-all hover:translate-y-[-2px] hover:shadow-md",
+                      "rounded-2xl font-bold text-center border shadow-sm transition-all hover:translate-y-[-2px] hover:shadow-md relative overflow-hidden",
                       isFullScreen ? "p-8 text-2xl" : "p-6 text-xl",
                       type === "vote"
                         ? "bg-blue-500/10 border-blue-500/20 text-blue-700 dark:text-blue-300 hover:bg-blue-500/15"
                         : "bg-purple-500/10 border-purple-500/20 text-purple-700 dark:text-purple-300 hover:bg-purple-500/15",
                       !option && "opacity-20",
-                      showResult && index === correctAnswer && "ring-4 ring-yellow-400 border-yellow-500 bg-yellow-400/20 scale-[1.02] shadow-xl z-20"
+                      showResult && index == correctAnswer && "ring-4 ring-yellow-400 border-yellow-500 bg-yellow-400/20 scale-[1.02] shadow-xl z-20"
                     )}
                   >
-                    <div className="flex items-center gap-4">
+                    {showResult && index == correctAnswer && (
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[200%] sparkle-halo pointer-events-none z-0" />
+                    )}
+                    
+                    <div className="flex items-center gap-4 relative z-10">
                       <span className={cn(
                         "flex items-center justify-center rounded-full bg-background border font-black shadow-inner shrink-0",
                         isFullScreen ? "w-14 h-14 text-lg" : "w-10 h-10 text-sm",
-                        showResult && index === correctAnswer && "bg-yellow-400 border-yellow-600 text-yellow-900 shadow-yellow-500/50"
+                        showResult && index == correctAnswer && "bg-yellow-400 border-yellow-600 text-yellow-900 shadow-yellow-500/50 animate-sparkle-inner"
                       )}>
                         {index + 1}
                       </span>
                       <span className="flex-1 text-left">{option || "---"}</span>
-                      {showResult && index === correctAnswer && (
-                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-yellow-400 text-yellow-900 animate-in zoom-in-0 duration-500">
+                      {showResult && index == correctAnswer && (
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-yellow-400 text-yellow-900 animate-in zoom-in-0 duration-500 shadow-lg shadow-yellow-500/50">
                           <Check className="h-5 w-5 stroke-[4px]" />
                         </div>
                       )}

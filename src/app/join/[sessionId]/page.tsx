@@ -221,7 +221,7 @@ function ParticipantView() {
                 content={currentSlide.content}
                 type={currentSlide.type as any}
                 options={currentSlide.options ? JSON.parse(currentSlide.options as string) : []}
-                correctAnswer={currentSlide.correct_answer || undefined}
+                correctAnswer={currentSlide.correct_answer ?? undefined}
                 showResult={currentSlide.show_result}
                 className="shadow-2xl border-none"
               />

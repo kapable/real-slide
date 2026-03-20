@@ -41,7 +41,8 @@ import {
   Share2,
   Monitor,
   Eye,
-  EyeOff
+  EyeOff,
+  Check
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FullScreenPresentation } from "@/components/FullScreenPresentation";
@@ -57,6 +58,7 @@ export default function PresenterPage() {
   const [votes, setVotes] = useState<Record<number, number>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isCopied, setIsCopied] = useState(false);
   const [isAddSlideOpen, setIsAddSlideOpen] = useState(false);
   const [isPresentationOpen, setIsPresentationOpen] = useState(false);
   
@@ -200,35 +202,45 @@ export default function PresenterPage() {
     setVotes({});
   };
 
+  const currentSlide = slides[currentSlideIndex];
+
   const toggleResult = async () => {
     if (!currentSlide) return;
     const nextShowResult = !currentSlide.show_result;
     
-    // 1. DB 업데이트
-    await supabase
-      .from("slides")
-      .update({ show_result: nextShowResult })
-      .eq("id", currentSlide.id);
-
-    // 2. 로컬 상태 업데이트
-    setSlides(slides.map(s => 
-      s.id === currentSlide.id ? { ...s, show_result: nextShowResult } : s
-    ));
-
-    // 3. 브로드캐스트 (실시간)
-    if (channelRef.current) {
-      channelRef.current.send({
-        type: "broadcast",
-        event: "slide:result",
-        payload: { slideId: currentSlide.id, showResult: nextShowResult },
+    try {
+      // 1. API를 통해 DB 업데이트
+      const response = await fetch(`/api/slides/${sessionId}/${currentSlide.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ show_result: nextShowResult }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "DB 업데이트 실패");
+      }
+
+      // 2. 로컬 상태 업데이트
+      setSlides(prevSlides => 
+        prevSlides.map(s => s.id === currentSlide.id ? { ...s, show_result: nextShowResult } : s)
+      );
+
+      // 3. 브로드캐스트 (실시간)
+      if (channelRef.current) {
+        channelRef.current.send({
+          type: "broadcast",
+          event: "slide:result",
+          payload: { slideId: currentSlide.id, showResult: nextShowResult },
+        });
+      }
+    } catch (err) {
+      console.error("[Presenter] Failed to toggle result:", err instanceof Error ? err.message : err);
     }
   };
 
   const handleNextSlide = () => syncSlide(Math.min(currentSlideIndex + 1, slides.length - 1));
   const handlePrevSlide = () => syncSlide(Math.max(currentSlideIndex - 1, 0));
-
-  const currentSlide = slides[currentSlideIndex];
 
   if (isLoading) return <div className="h-svh w-full flex items-center justify-center bg-background"><PresentationIcon className="h-10 w-10 animate-pulse text-primary" /></div>;
 
@@ -257,12 +269,22 @@ export default function PresenterPage() {
             </div>
             
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" className="h-8 gap-2" onClick={() => {
-                const url = `${window.location.origin}/join/${shareCode}`;
-                navigator.clipboard.writeText(url);
-              }}>
-                <Share2 className="h-3.5 w-3.5" />
-                <span className="text-xs">링크 복사</span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className={cn(
+                  "h-8 gap-2 transition-all duration-200",
+                  isCopied && "text-green-600 bg-green-50 dark:bg-green-900/20"
+                )} 
+                onClick={() => {
+                  const url = `${window.location.origin}/join/${shareCode}`;
+                  navigator.clipboard.writeText(url);
+                  setIsCopied(true);
+                  setTimeout(() => setIsCopied(false), 2000);
+                }}
+              >
+                {isCopied ? <Check className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
+                <span className="text-xs">{isCopied ? "복사됨!" : "링크 복사"}</span>
               </Button>
               <Button 
                 variant="default" 
@@ -294,7 +316,7 @@ export default function PresenterPage() {
                       content={currentSlide.content}
                       type={currentSlide.type as any}
                       options={currentSlide.options ? JSON.parse(currentSlide.options as string) : []}
-                      correctAnswer={currentSlide.correct_answer || undefined}
+                      correctAnswer={currentSlide.correct_answer ?? undefined}
                       showResult={currentSlide.show_result}
                       votes={votes}
                       className="shadow-2xl border-none"
@@ -355,7 +377,7 @@ export default function PresenterPage() {
                       votes={votes}
                       options={currentSlide.options ? JSON.parse(currentSlide.options as string) : []}
                       type="bar"
-                      correctAnswer={currentSlide.correct_answer || undefined}
+                      correctAnswer={typeof currentSlide.correct_answer === 'number' ? currentSlide.correct_answer : undefined}
                       showResult={currentSlide.show_result}
                     />
                   </Card>

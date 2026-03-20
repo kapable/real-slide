@@ -34,7 +34,7 @@ export function VoteChart({
   const data = options.map((label, index) => ({
     name: label || `옵션 ${index + 1}`,
     votes: votes[index] || 0,
-    isCorrect: correctAnswer !== undefined && index === correctAnswer,
+    isCorrect: correctAnswer !== undefined && index == correctAnswer,
   }));
 
   // Premium Color Palette
