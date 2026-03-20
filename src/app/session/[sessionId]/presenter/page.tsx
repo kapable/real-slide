@@ -5,6 +5,9 @@ import { useParams, useRouter } from "next/navigation";
 import { Slide } from "@/types";
 import { SlidePresentation } from "@/components/SlidePresentation";
 import { VoteChart } from "@/components/VoteChart";
+import HandsUpPanel from "@/components/HandsUpPanel";
+import CommentSection from "@/components/CommentSection";
+import WordcloudDisplay from "@/components/WordcloudDisplay";
 import { supabase } from "@/lib/supabase";
 
 export default function PresenterPage() {
@@ -19,6 +22,7 @@ export default function PresenterPage() {
   const [newSlideContent, setNewSlideContent] = useState("");
   const [slideType, setSlideType] = useState("slide");
   const [options, setOptions] = useState(["옵션 1", "옵션 2", "옵션 3"]);
+  const [correctAnswer, setCorrectAnswer] = useState(0);
   const [votes, setVotes] = useState<Record<number, number>>({});
 
   const [isLoading, setIsLoading] = useState(true);
@@ -68,22 +72,24 @@ export default function PresenterPage() {
     fetchSlides();
   }, [sessionId]);
 
-  // Update vote chart
-  const updateVoteChart = useCallback(async (slideId: string) => {
+  // Update vote/quiz chart
+  const updateVoteChart = useCallback(async (slideId: string, type: string) => {
     try {
-      const response = await fetch(`/api/votes/${slideId}`);
+      const endpoint = type === "quiz" ? `/api/quiz/${slideId}` : `/api/votes/${slideId}`;
+      const response = await fetch(endpoint);
       if (!response.ok) return;
 
-      const slideVotes = await response.json();
-      const voteCounts: Record<number, number> = {};
-      slideVotes.forEach((vote: any) => {
-        const count = voteCounts[vote.option_index] || 0;
-        voteCounts[vote.option_index] = count + 1;
+      const results = await response.json();
+      const counts: Record<number, number> = {};
+      results.forEach((item: any) => {
+        const index = type === "quiz" ? item.answer_index : item.option_index;
+        const count = counts[index] || 0;
+        counts[index] = count + 1;
       });
 
-      setVotes(voteCounts);
+      setVotes(counts);
     } catch (err) {
-      console.error("Failed to update voting data:", err);
+      console.error("Failed to update voting/quiz data:", err);
     }
   }, []);
 
@@ -91,10 +97,14 @@ export default function PresenterPage() {
   useEffect(() => {
     const channel = supabase
       .channel(`session-${sessionId}`)
-      .on("broadcast", { event: "slide:change" }, (payload) => {
-        setCurrentSlideIndex(payload.payload.slideIndex);
-        setVotes({});
-      })
+      .on(
+        "broadcast",
+        { event: "slide:change" },
+        (payload: { payload: { slideIndex: number } }) => {
+          setCurrentSlideIndex(payload.payload.slideIndex);
+          setVotes({});
+        },
+      )
       .on(
         "postgres_changes",
         {
@@ -102,11 +112,26 @@ export default function PresenterPage() {
           schema: "public",
           table: "votes",
         },
-        (payload) => {
+        (payload: { new: { slide_id: string } }) => {
           // Only update if it's for current slide
           const currentSlide = slides[currentSlideIndex];
-          if (currentSlide && payload.new?.slide_id === currentSlide.id) {
-            updateVoteChart(currentSlide.id);
+          if (currentSlide && currentSlide.type === "vote" && payload.new?.slide_id === currentSlide.id) {
+            updateVoteChart(currentSlide.id, "vote");
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "quiz_answers",
+        },
+        (payload: { new: { slide_id: string } }) => {
+          // Only update if it's for current slide
+          const currentSlide = slides[currentSlideIndex];
+          if (currentSlide && currentSlide.type === "quiz" && payload.new?.slide_id === currentSlide.id) {
+            updateVoteChart(currentSlide.id, "quiz");
           }
         },
       )
@@ -119,11 +144,11 @@ export default function PresenterPage() {
     };
   }, [sessionId, slides, currentSlideIndex, updateVoteChart]);
 
-  // Load vote data when slide changes
+  // Load vote/quiz data when slide changes
   useEffect(() => {
     const currentSlide = slides[currentSlideIndex];
-    if (currentSlide && currentSlide.type === "vote") {
-      updateVoteChart(currentSlide.id);
+    if (currentSlide && (currentSlide.type === "vote" || currentSlide.type === "quiz")) {
+      updateVoteChart(currentSlide.id, currentSlide.type);
     }
   }, [currentSlideIndex, slides, updateVoteChart]);
 
@@ -139,6 +164,7 @@ export default function PresenterPage() {
         title: newSlideTitle,
         content: newSlideContent,
         options: slideType === "slide" ? null : options,
+        correctAnswer: slideType === "quiz" ? correctAnswer : null,
       };
 
       const response = await fetch(`/api/slides/${sessionId}`, {
@@ -154,6 +180,7 @@ export default function PresenterPage() {
       setNewSlideTitle("");
       setNewSlideContent("");
       setOptions(["옵션 1", "옵션 2", "옵션 3"]);
+      setCorrectAnswer(0);
       setError("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error occurred");
@@ -176,7 +203,7 @@ export default function PresenterPage() {
 
     setVotes({});
     if (slides[nextIndex]) {
-      updateVoteChart(slides[nextIndex].id);
+      updateVoteChart(slides[nextIndex].id, slides[nextIndex].type);
     }
   };
 
@@ -196,7 +223,7 @@ export default function PresenterPage() {
 
     setVotes({});
     if (slides[prevIndex]) {
-      updateVoteChart(slides[prevIndex].id);
+      updateVoteChart(slides[prevIndex].id, slides[prevIndex].type);
     }
   };
 
@@ -238,10 +265,12 @@ export default function PresenterPage() {
       </div>
 
       <div className="max-w-7xl mx-auto p-4">
-        <div className="grid grid-cols-3 gap-4">
-          {/* Left: Add Slide Panel */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Add Slide</h2>
+        <div className="grid grid-cols-12 gap-4 h-[calc(100vh-120px)]">
+          {/* Left Panel: Add/List Slides (2 columns) */}
+          <div className="col-span-2 bg-white rounded-lg shadow p-4 overflow-y-auto">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">
+              슬라이드 추가
+            </h2>
 
             {error && (
               <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded mb-4 text-sm">
@@ -253,29 +282,29 @@ export default function PresenterPage() {
               {/* Slide Type Select */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Slide Type
+                  슬라이드 타입
                 </label>
                 <select
                   value={slideType}
                   onChange={(e) => setSlideType(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded"
                 >
-                  <option value="slide">Regular Slide</option>
-                  <option value="vote">Poll</option>
-                  <option value="quiz">Quiz</option>
+                  <option value="slide">일반 슬라이드</option>
+                  <option value="vote">투표</option>
+                  <option value="quiz">퀴즈</option>
                 </select>
               </div>
 
               {/* Title Input */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Title
+                  제목
                 </label>
                 <input
                   type="text"
                   value={newSlideTitle}
                   onChange={(e) => setNewSlideTitle(e.target.value)}
-                  placeholder="Slide title"
+                  placeholder="슬라이드 제목"
                   className="w-full px-3 py-2 border border-gray-300 rounded"
                 />
               </div>
@@ -283,14 +312,14 @@ export default function PresenterPage() {
               {/* Content Input */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Content
+                  콘텐츠
                 </label>
                 <textarea
                   value={newSlideContent}
                   onChange={(e) => setNewSlideContent(e.target.value)}
-                  placeholder="Slide content"
+                  placeholder="슬라이드 내용"
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded"
+                  className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
                 />
               </div>
 
@@ -298,15 +327,35 @@ export default function PresenterPage() {
               {slideType !== "slide" && (
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Options (separate by line breaks)
+                    선택지 (엔터로 구분)
                   </label>
                   <textarea
                     value={options.join("\n")}
                     onChange={(e) => setOptions(e.target.value.split("\n"))}
-                    placeholder="Option 1&#10;Option 2&#10;Option 3"
+                    placeholder="선택지 1&#10;선택지 2&#10;선택지 3"
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
                   />
+                </div>
+              )}
+
+              {/* Quiz Correct Answer */}
+              {slideType === "quiz" && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    정답 (선택지 인덱스: 0부터 시작)
+                  </label>
+                  <select
+                    value={correctAnswer}
+                    onChange={(e) => setCorrectAnswer(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded"
+                  >
+                    {options.map((_, index) => (
+                      <option key={index} value={index}>
+                        {index + 1}번 선택지
+                      </option>
+                    ))}
+                  </select>
                 </div>
               )}
 
@@ -314,33 +363,35 @@ export default function PresenterPage() {
                 onClick={handleAddSlide}
                 className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 rounded"
               >
-                Add Slide
+                슬라이드 추가
               </button>
             </div>
 
             {/* Slide List */}
             <div className="mt-6 border-t pt-4">
-              <h3 className="font-semibold text-gray-700 mb-3">Slide List</h3>
+              <h3 className="font-semibold text-gray-700 mb-3">
+                슬라이드 목록
+              </h3>
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {slides.map((slide, index) => (
                   <button
                     key={slide.id}
                     onClick={() => setCurrentSlideIndex(index)}
-                    className={`w-full p-2 text-left rounded text-sm ${
+                    className={`w-full p-2 text-left rounded text-sm transition ${
                       index === currentSlideIndex
                         ? "bg-blue-500 text-white"
                         : "bg-gray-100 hover:bg-gray-200"
                     }`}
                   >
                     <div className="font-semibold">
-                      {index + 1}. {slide.title || "(No title)"}
+                      {index + 1}. {slide.title || "(제목 없음)"}
                     </div>
                     <div className="text-xs opacity-75">
                       {slide.type === "slide"
-                        ? "Slide"
+                        ? "슬라이드"
                         : slide.type === "vote"
-                          ? "Poll"
-                          : "Quiz"}
+                          ? "투표"
+                          : "퀴즈"}
                     </div>
                   </button>
                 ))}
@@ -348,10 +399,10 @@ export default function PresenterPage() {
             </div>
           </div>
 
-          {/* Center: Large Slide View */}
-          <div className="col-span-2">
+          {/* Center: Large Slide View (5 columns) */}
+          <div className="col-span-5 flex flex-col gap-4 overflow-y-auto">
             <div
-              className="bg-white rounded-lg shadow p-6 mb-4"
+              className="bg-white rounded-lg shadow p-6 flex-shrink-0"
               style={{ aspectRatio: "16/9" }}
             >
               {currentSlide ? (
@@ -367,49 +418,76 @@ export default function PresenterPage() {
                 />
               ) : (
                 <div className="h-full flex items-center justify-center text-gray-400">
-                  Add a slide to get started
+                  슬라이드를 추가하여 시작하세요
                 </div>
               )}
             </div>
 
             {/* Slide Navigation */}
-            <div className="bg-white rounded-lg shadow p-4 flex justify-between items-center mb-4">
+            <div className="bg-white rounded-lg shadow p-4 flex justify-between items-center flex-shrink-0">
               <button
                 onClick={handlePrevSlide}
                 disabled={currentSlideIndex === 0}
-                className="px-4 py-2 bg-gray-300 disabled:bg-gray-200 text-gray-800 rounded hover:bg-gray-400"
+                className="px-4 py-2 bg-gray-300 disabled:bg-gray-200 text-gray-800 rounded hover:bg-gray-400 transition"
               >
-                ← Previous
+                ← 이전
               </button>
               <span className="text-gray-700 font-semibold">
                 {slides.length > 0
                   ? `${currentSlideIndex + 1} / ${slides.length}`
-                  : "No slides"}
+                  : "슬라이드 없음"}
               </span>
               <button
                 onClick={handleNextSlide}
                 disabled={currentSlideIndex >= slides.length - 1}
-                className="px-4 py-2 bg-blue-500 disabled:bg-gray-200 text-white rounded hover:bg-blue-600"
+                className="px-4 py-2 bg-blue-500 disabled:bg-gray-200 text-white rounded hover:bg-blue-600 transition"
               >
-                Next →
+                다음 →
               </button>
             </div>
 
             {/* Vote/Quiz Chart */}
             {currentSlide &&
-              currentSlide.type === "vote" &&
+              (currentSlide.type === "vote" || currentSlide.type === "quiz") &&
               currentSlide.options && (
-                <div className="bg-white rounded-lg shadow p-4">
+                <div className="bg-white rounded-lg shadow p-4 flex-shrink-0">
                   <h3 className="text-lg font-bold text-gray-800 mb-4">
-                    Poll Results
+                    {currentSlide.type === "vote" ? "투표 결과" : "퀴즈 실시간 현황"}
                   </h3>
                   <VoteChart
                     votes={votes}
                     options={JSON.parse(currentSlide.options as string)}
                     type="bar"
+                    correctAnswer={currentSlide.type === "quiz" ? currentSlide.correct_answer : undefined}
                   />
                 </div>
               )}
+
+            {/* Wordcloud Display */}
+            {currentSlide && (
+              <div className="bg-white rounded-lg shadow p-4 flex-shrink-0">
+                <WordcloudDisplay slideId={currentSlide.id} maxWords={50} />
+              </div>
+            )}
+          </div>
+
+          {/* Right Panel: Hands Up + Comments (5 columns) */}
+          <div className="col-span-5 flex flex-col gap-4 overflow-y-auto">
+            {/* Hands Up Panel */}
+            <div className="flex-shrink-0">
+              <HandsUpPanel sessionId={sessionId} />
+            </div>
+
+            {/* Comments Section */}
+            {currentSlide && (
+              <div className="flex-1 min-h-0">
+                <CommentSection
+                  slideId={currentSlide.id}
+                  participantId="presenter"
+                  nickname="발표자"
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

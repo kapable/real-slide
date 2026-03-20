@@ -10,19 +10,19 @@ export async function GET(
 ) {
   try {
     const { sessionId } = await params;
-    
+
     // 환경 변수 확인
     if (!supabaseUrl || !supabaseAnonKey) {
       console.error("❌ 환경 변수가 설정되지 않았습니다");
       return NextResponse.json(
-        { 
+        {
           error: "환경 변수가 설정되지 않았습니다",
           details: {
             hasUrl: !!supabaseUrl,
-            hasKey: !!supabaseAnonKey
-          }
+            hasKey: !!supabaseAnonKey,
+          },
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -39,15 +39,14 @@ export async function GET(
     if (error) {
       console.error("❌ Supabase 쿼리 에러:", error);
       return NextResponse.json(
-        { 
+        {
           error: error.message,
           details: {
             code: error.code,
             hint: error.hint,
-            status: error.status
-          }
+          },
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -56,9 +55,9 @@ export async function GET(
   } catch (error) {
     console.error("❌ API 에러:", error);
     return NextResponse.json(
-      { 
+      {
         error: error instanceof Error ? error.message : "서버 오류",
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
       },
       { status: 500 },
     );
@@ -78,13 +77,15 @@ export async function POST(
       console.error("❌ 환경 변수가 설정되지 않았습니다");
       return NextResponse.json(
         { error: "환경 변수가 설정되지 않았습니다" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-    console.log(`📝 슬라이드 추가 요청: sessionId=${sessionId}, type=${type}, title=${title}`);
+    console.log(
+      `📝 슬라이드 추가 요청: sessionId=${sessionId}, type=${type}, title=${title}`,
+    );
 
     // Get current max order
     const { data: maxData, error: maxError } = await supabase
@@ -119,11 +120,11 @@ export async function POST(
     if (error) {
       console.error("❌ 슬라이드 추가 실패:", error);
       return NextResponse.json(
-        { 
+        {
           error: error.message,
-          details: { code: error.code, hint: error.hint }
+          details: { code: error.code, hint: error.hint },
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -132,7 +133,7 @@ export async function POST(
   } catch (error) {
     console.error("❌ POST API 에러:", error);
     return NextResponse.json(
-      { 
+      {
         error: error instanceof Error ? error.message : "서버 오류",
       },
       { status: 500 },

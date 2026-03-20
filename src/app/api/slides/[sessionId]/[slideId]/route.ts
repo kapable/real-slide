@@ -37,16 +37,17 @@ export async function PUT(
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { sessionId: string; slideId: string } },
+  { params }: { params: Promise<{ sessionId: string; slideId: string }> },
 ) {
   try {
+    const { sessionId, slideId } = await params;
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
     const { error } = await supabase
       .from("slides")
       .delete()
-      .eq("id", params.slideId)
-      .eq("session_id", params.sessionId);
+      .eq("id", slideId)
+      .eq("session_id", sessionId);
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
