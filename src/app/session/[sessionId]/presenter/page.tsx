@@ -481,14 +481,14 @@ export default function PresenterPage() {
 
         {/* Add Slide Dialog */}
         <Dialog open={isAddSlideOpen} onOpenChange={setIsAddSlideOpen}>
-          <DialogContent className="sm:max-w-[480px] p-8 gap-0 border-none shadow-2xl overflow-hidden glass rounded-[2rem]">
+          <DialogContent className="sm:max-w-[480px] p-6 gap-0 border border-muted/200 shadow-2xl overflow-hidden bg-background/95 backdrop-blur-xl rounded-3xl">
             <DialogHeader className="sr-only">
               <DialogTitle>새 슬라이드 추가</DialogTitle>
             </DialogHeader>
-            <AddSlideForm 
-              onAdd={handleAddSlide} 
-              isLoading={isLoading} 
-              onCancel={() => setIsAddSlideOpen(false)} 
+            <AddSlideForm
+              onAdd={handleAddSlide}
+              isLoading={isLoading}
+              onCancel={() => setIsAddSlideOpen(false)}
             />
           </DialogContent>
         </Dialog>

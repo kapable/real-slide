@@ -9,17 +9,18 @@ export default function Home() {
       {/* Header */}
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <div className="bg-primary p-1.5 rounded-lg text-primary-foreground">
               <Presentation className="h-6 w-6" />
             </div>
             <span className="text-xl font-bold tracking-tight">Real-Slide</span>
-          </div>
-          <nav className="flex items-center gap-6">
-            <Link href="#features" className="text-sm font-medium hover:text-primary transition-colors">Features</Link>
-            <Link href="/creator" className="text-sm font-medium hover:text-primary transition-colors">Creator</Link>
+          </Link>
+          <nav className="flex items-center gap-3">
             <Button asChild variant="default" size="sm">
-              <Link href="/join">Join Session</Link>
+              <Link href="/creator">지금 시작하기</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/join">세션 참여하기</Link>
             </Button>
           </nav>
         </div>
