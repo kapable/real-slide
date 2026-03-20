@@ -3,6 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft, Presentation, Sparkles, Loader2 } from "lucide-react";
 
 export default function CreatorPage() {
   const router = useRouter();
@@ -41,68 +45,96 @@ export default function CreatorPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600">
-      <div className="max-w-2xl mx-auto px-4 py-12">
-        {/* 상단 네비게이션 */}
-        <div className="flex justify-between items-center mb-12">
-          <Link
-            href="/"
-            className="text-white text-lg font-bold hover:opacity-80"
-          >
-            ← Real-Slide
-          </Link>
+    <div className="min-h-screen bg-muted/30 flex flex-col">
+      <div className="container max-w-2xl flex-1 flex flex-col py-12">
+        <div className="mb-8">
+          <Button variant="ghost" asChild className="gap-2 -ml-4 text-muted-foreground hover:text-foreground">
+            <Link href="/">
+              <ArrowLeft className="h-4 w-4" />
+              메인으로 돌아가기
+            </Link>
+          </Button>
         </div>
 
-        {/* 메인 카드 */}
-        <div className="bg-white rounded-lg shadow-2xl p-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">발표 시작</h1>
-          <p className="text-gray-600 mb-8">
-            새로운 프레젠테이션을 생성하고 청중과 상호작용하세요.
-          </p>
-
-          <form onSubmit={handleCreateSession} className="space-y-6">
-            {/* 제목 입력 */}
-            <div>
-              <label className="block text-gray-700 font-semibold mb-2">
-                프레젠테이션 제목
-              </label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="예: 2024년 Q1 분기 실적 발표"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={isLoading}
-              />
+        <Card className="shadow-xl border-none glass-shadow overflow-hidden">
+          <div className="h-2 bg-gradient-to-r from-primary to-purple-600" />
+          <CardHeader className="space-y-4 pt-8">
+            <div className="bg-primary/10 w-12 h-12 rounded-2xl flex items-center justify-center text-primary">
+              <Presentation className="h-6 w-6" />
             </div>
-
-            {/* 에러 표시 */}
-            {error && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                {error}
+            <div className="space-y-1">
+              <CardTitle className="text-3xl font-bold tracking-tight">발표 시작하기</CardTitle>
+              <CardDescription className="text-base">
+                새로운 프레젠테이션 세션을 생성하고 실시간 상호작용을 시작하세요.
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleCreateSession} className="space-y-6">
+              <div className="space-y-2">
+                <label htmlFor="title" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                  프레젠테이션 제목
+                </label>
+                <Input
+                  id="title"
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="예: 2024년 상반기 성과 발표"
+                  className="h-12 text-lg"
+                  disabled={isLoading}
+                />
               </div>
-            )}
 
-            {/* 제출 버튼 */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg transition"
-            >
-              {isLoading ? "생성 중..." : "발표 시작"}
-            </button>
-          </form>
+              {error && (
+                <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg text-sm font-medium animate-in fade-in slide-in-from-top-1">
+                  {error}
+                </div>
+              )}
 
-          {/* 팁 섹션 */}
-          <div className="mt-8 pt-8 border-t border-gray-200">
-            <h3 className="text-gray-700 font-semibold mb-4">💡 팁</h3>
-            <ul className="text-gray-600 text-sm space-y-2">
-              <li>• 발표를 시작하면 고유한 세션 링크가 생성됩니다.</li>
-              <li>• 그 링크를 청중과 공유하면 누구나 참여할 수 있습니다.</li>
-              <li>• 발표 중 슬라이드, 투표, 댓글 등을 관리할 수 있습니다.</li>
-            </ul>
-          </div>
-        </div>
+              <Button
+                type="submit"
+                size="lg"
+                disabled={isLoading}
+                className="w-full h-12 text-lg font-semibold shadow-lg shadow-primary/20 transition-all active:scale-[0.98]"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    생성 중...
+                  </>
+                ) : (
+                  <>
+                    발표 시작하기
+                    <Sparkles className="ml-2 h-5 w-5" />
+                  </>
+                )}
+              </Button>
+            </form>
+          </CardContent>
+          <CardFooter className="bg-muted/50 border-t p-6">
+            <div className="space-y-3 w-full">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                도움말
+              </h3>
+              <ul className="text-sm text-muted-foreground space-y-2">
+                <li className="flex gap-2">
+                  <span className="text-primary">•</span>
+                  발표를 시작하면 고유한 세션 코드가 생성됩니다.
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-primary">•</span>
+                  코드를 청중에게 공유하여 실시간 참여를 유도하세요.
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-primary">•</span>
+                  발표 중 언제든지 새로운 슬라이드를 추가하거나 투표를 진행할 수 있습니다.
+                </li>
+              </ul>
+            </div>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   );

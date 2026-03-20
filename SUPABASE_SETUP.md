@@ -71,6 +71,7 @@ CREATE TABLE public.hands_up (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
   participant_id UUID NOT NULL REFERENCES participants(id) ON DELETE CASCADE,
+  nickname TEXT NOT NULL,
   is_up BOOLEAN DEFAULT false,
   toggled_at TIMESTAMP DEFAULT NOW(),
   UNIQUE(session_id, participant_id)

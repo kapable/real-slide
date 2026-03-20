@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { Slide } from "@/types";
 import { SlidePresentation } from "@/components/SlidePresentation";
@@ -8,8 +8,24 @@ import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
 import CommentSection from "@/components/CommentSection";
 import ParticipantControls from "@/components/ParticipantControls";
 import WordcloudDisplay from "@/components/WordcloudDisplay";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { 
+  Users, 
+  Presentation as PresentationIcon, 
+  CheckCircle2, 
+  Sparkles, 
+  HelpCircle, 
+  BarChart2,
+  Clock,
+  ArrowLeft
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
 
-export default function JoinSessionPage() {
+function ParticipantView() {
   const params = useParams();
   const searchParams = useSearchParams();
   const sessionId = params.sessionId as string;
@@ -22,51 +38,32 @@ export default function JoinSessionPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Initialize participant and fetch slides
   useEffect(() => {
     const initialize = async () => {
       try {
-        // Add participant
         const response = await fetch("/api/participants/join", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sessionId, nickname }),
         });
-
         if (!response.ok) throw new Error("참여 실패");
-
         const { participantId: pId } = await response.json();
         setParticipantId(pId);
 
-        // Fetch slides
         const slidesResponse = await fetch(`/api/slides/${sessionId}`);
-
-        if (!slidesResponse.ok) {
-          throw new Error(`슬라이드 로드 실패: ${slidesResponse.status}`);
-        }
-
+        if (!slidesResponse.ok) throw new Error("슬라이드 로드 실패");
         const slidesData = await slidesResponse.json();
-
-        if (!Array.isArray(slidesData)) {
-          throw new Error("잘못된 슬라이드 응답 형식입니다");
-        }
-
         setSlides(slidesData);
       } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : "오류 발생";
-        setError(errorMsg);
-        console.error("초기화 에러:", err);
-        // 에러 발생 시 빈 배열로 초기화
+        setError(err instanceof Error ? err.message : "오류 발생");
         setSlides([]);
       } finally {
         setIsLoading(false);
       }
     };
-
     initialize();
   }, [sessionId, nickname]);
 
-  // Subscribe to realtime changes
   useRealtimeChannel(`session-${sessionId}`, {
     onBroadcast: (payload) => {
       if (payload.event === "slide:change") {
@@ -78,7 +75,6 @@ export default function JoinSessionPage() {
 
   const handleVote = async (optionIndex: number, type: "vote" | "quiz") => {
     if (!participantId || hasVoted) return;
-
     try {
       const endpoint = type === "quiz" ? "/api/quiz/submit" : "/api/votes/submit";
       const body = type === "quiz" 
@@ -90,177 +86,170 @@ export default function JoinSessionPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-
-      if (!response.ok) throw new Error(type === "quiz" ? "답변 제출 실패" : "투표 실패");
-
-      setHasVoted(true);
+      if (response.ok) setHasVoted(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "오류 발생");
+      setError(err instanceof Error ? err.message : "제출 실패");
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-center">
-          <div className="text-2xl font-bold text-gray-800 mb-2">
-            참여 중입니다...
-          </div>
-          <div className="text-gray-600">
-            발표자의 슬라이드를 기다리고 있습니다.
-          </div>
-        </div>
+  if (isLoading) return (
+    <div className="min-h-svh flex flex-col items-center justify-center bg-muted/20 animate-in fade-in duration-500">
+      <div className="bg-primary/10 p-4 rounded-3xl mb-6">
+        <PresentationIcon className="h-10 w-10 text-primary animate-pulse" />
       </div>
-    );
-  }
+      <h2 className="text-xl font-bold tracking-tight mb-2">세션 연결 중...</h2>
+      <p className="text-muted-foreground text-sm font-medium">발표자의 슬라이드를 불러오고 있습니다.</p>
+    </div>
+  );
 
   const currentSlide = slides[currentSlideIndex];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* 상단 네비게이션 */}
-      <div className="bg-white border-b border-gray-200 p-4">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">
-              {nickname}님 환영합니다
-            </h1>
+    <div className="min-h-svh bg-muted/20 flex flex-col selection:bg-primary/20">
+      {/* Header */}
+      <header className="h-16 flex items-center justify-between px-6 border-b bg-background/50 backdrop-blur-md sticky top-0 z-50">
+        <div className="flex items-center gap-3">
+          <div className="bg-primary p-1.5 rounded-lg text-primary-foreground hidden sm:flex">
+            <PresentationIcon className="h-4 w-4" />
           </div>
-          <div className="text-sm text-gray-600">
-            슬라이드{" "}
-            {slides.length > 0
-              ? `${currentSlideIndex + 1}/${slides.length}`
-              : "0/0"}
+          <div>
+            <h1 className="font-bold text-sm tracking-tight leading-none mb-1">
+              {nickname}
+              <span className="text-muted-foreground font-medium ml-1">님</span>
+            </h1>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="h-4 text-[9px] font-black tracking-widest px-1 uppercase border-primary/20 text-primary bg-primary/5">Participant</Badge>
+              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">
+                {slides.length > 0 ? `${currentSlideIndex + 1} / ${slides.length}` : "0 / 0"}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
+        <Button variant="ghost" size="sm" asChild className="h-8 gap-2 text-muted-foreground hover:text-foreground">
+          <Link href="/join">
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span className="text-xs font-bold">나가기</span>
+          </Link>
+        </Button>
+      </header>
 
-      <div className="flex-1 max-w-7xl mx-auto w-full p-4">
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
-
-        <div className="grid grid-cols-5 gap-4 h-full">
-          {/* 메인 슬라이드 뷰 (3칼럼) */}
-          <div className="col-span-3 flex flex-col">
-            {/* 슬라이드 */}
-            <div
-              className="bg-white rounded-lg shadow p-6 mb-4 flex-shrink-0"
-              style={{ aspectRatio: "16/9" }}
-            >
-              {currentSlide ? (
-                <SlidePresentation
-                  title={currentSlide.title}
-                  content={currentSlide.content}
-                />
-              ) : (
-                <div className="h-full flex items-center justify-center text-gray-400">
-                  슬라이드를 기다리는 중입니다...
-                </div>
-              )}
+      <main className="flex-1 flex flex-col lg:flex-row gap-6 p-6 max-w-[1600px] mx-auto w-full">
+        {/* Left: Main Content (Slide + Interaction) */}
+        <div className="flex-1 flex flex-col gap-6 min-w-0">
+          {error && (
+            <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-2 animate-in slide-in-from-top-2">
+              <Sparkles className="h-4 w-4" />
+              {error}
             </div>
+          )}
 
-            {/* 투표 인터페이스 */}
-            {currentSlide &&
-              currentSlide.type === "vote" &&
-              currentSlide.options && (
-                <div className="bg-white rounded-lg shadow p-6 mb-4 flex-shrink-0">
-                  <h2 className="text-2xl font-bold text-gray-800 mb-4">
-                    {currentSlide.title}
-                  </h2>
-                  <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                    {JSON.parse(currentSlide.options as string).map(
-                      (option: string, index: number) => (
-                        <button
-                          key={index}
-                          onClick={() => handleVote(index, "vote")}
-                          disabled={hasVoted}
-                          className={`p-4 rounded-lg font-semibold text-lg transition ${
-                            hasVoted
-                              ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                              : "bg-blue-500 text-white hover:bg-blue-600"
-                          }`}
-                        >
-                          {option}
-                        </button>
-                      ),
-                    )}
-                  </div>
-                  {hasVoted && (
-                    <div className="mt-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
-                      ✓ 투표가 완료되었습니다
-                    </div>
-                  )}
-                </div>
-              )}
-
-            {/* 퀴즈 인터페이스 */}
-            {currentSlide &&
-              currentSlide.type === "quiz" &&
-              currentSlide.options && (
-                <div className="bg-white rounded-lg shadow p-6 mb-4 flex-shrink-0">
-                  <h2 className="text-2xl font-bold text-gray-800 mb-4">
-                    {currentSlide.title}
-                  </h2>
-                  <p className="text-gray-600 mb-6">{currentSlide.content}</p>
-                  <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                    {JSON.parse(currentSlide.options as string).map(
-                      (option: string, index: number) => (
-                        <button
-                          key={index}
-                          onClick={() => handleVote(index, "quiz")}
-                          disabled={hasVoted}
-                          className={`p-4 rounded-lg font-semibold text-lg transition ${
-                            hasVoted
-                              ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                              : "bg-purple-500 text-white hover:bg-purple-600"
-                          }`}
-                        >
-                          {option}
-                        </button>
-                      ),
-                    )}
-                  </div>
-                  {hasVoted && (
-                    <div className="mt-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
-                      ✓ 답변이 제출되었습니다
-                    </div>
-                  )}
-                </div>
-              )}
-
-            {/* 워드클라우드 */}
-            {currentSlide && (
-              <div className="flex-1 min-h-0">
-                <WordcloudDisplay slideId={currentSlide.id} />
+          {/* Slide Box */}
+          <div className="relative aspect-video w-full group">
+            {currentSlide ? (
+              <SlidePresentation
+                title={currentSlide.title}
+                content={currentSlide.content}
+                type={currentSlide.type as any}
+                options={currentSlide.options ? JSON.parse(currentSlide.options as string) : []}
+                className="shadow-2xl border-none"
+              />
+            ) : (
+              <div className="h-full bg-background rounded-2xl border border-dashed flex flex-col items-center justify-center space-y-4 text-muted-foreground opacity-30">
+                <Clock className="h-12 w-12" />
+                <p className="font-bold uppercase tracking-[0.2em] text-sm">발표를 기다리는 중...</p>
               </div>
             )}
           </div>
 
-          {/* 오른쪽 패널: 댓글 */}
-          <div className="col-span-2 flex flex-col min-h-0">
-            {participantId && currentSlide && (
+          {/* Interaction area */}
+          {currentSlide && (currentSlide.type === "vote" || currentSlide.type === "quiz") && (
+            <Card className={cn(
+              "shadow-2xl border-none glass-shadow overflow-hidden transition-all delay-300 animate-in slide-in-from-bottom-4",
+              currentSlide.type === "vote" ? "bg-blue-500/5" : "bg-purple-500/5"
+            )}>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div className="space-y-1">
+                  <CardTitle className="flex items-center gap-2">
+                    {currentSlide.type === "vote" ? (
+                      <BarChart2 className="h-5 w-5 text-blue-500" />
+                    ) : (
+                      <HelpCircle className="h-5 w-5 text-purple-500" />
+                    )}
+                    {currentSlide.title}
+                  </CardTitle>
+                  <CardDescription>의견을 제출해 실시간 결과에 참여하세요.</CardDescription>
+                </div>
+                {hasVoted && (
+                  <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20 px-3 py-1 gap-1.5 h-8 font-bold">
+                    <CheckCircle2 className="h-4 w-4" />
+                    제출 완료
+                  </Badge>
+                )}
+              </CardHeader>
+              <CardContent className="pb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {JSON.parse(currentSlide.options as string).map((option: string, index: number) => (
+                    <Button
+                      key={index}
+                      onClick={() => handleVote(index, currentSlide.type as any)}
+                      disabled={hasVoted || !option}
+                      variant={hasVoted ? "outline" : "default"}
+                      className={cn(
+                        "h-16 text-lg font-bold rounded-2xl transition-all active:scale-[0.98]",
+                        !hasVoted && (currentSlide.type === "vote" ? "bg-blue-500 hover:bg-blue-600" : "bg-purple-600 hover:bg-purple-700"),
+                        !option && "opacity-20"
+                      )}
+                    >
+                      {option || "---"}
+                    </Button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Wordcloud area */}
+          {currentSlide && slides[currentSlideIndex].type === "slide" && (
+            <div className="animate-in slide-in-from-bottom-4 duration-500">
+               <WordcloudDisplay slideId={currentSlide.id} className="shadow-2xl border-none min-h-[400px]" />
+            </div>
+          )}
+        </div>
+
+        {/* Right: Comments Sidebar */}
+        <div className="w-full lg:w-96 flex flex-col gap-6 flex-shrink-0 min-h-[500px]">
+          {participantId && currentSlide && (
+            <div className="flex-1 overflow-hidden flex flex-col animate-in slide-in-from-right-4 duration-700 delay-200">
               <CommentSection
                 slideId={currentSlide.id}
                 participantId={participantId}
                 nickname={nickname}
+                className="h-full"
               />
-            )}
-          </div>
+            </div>
+          )}
         </div>
-      </div>
+      </main>
 
-      {/* 하단 컨트롤 */}
+      {/* Floating Bottom Navigation */}
       {participantId && currentSlide && (
-        <ParticipantControls
-          sessionId={sessionId}
-          slideId={currentSlide.id}
-          participantId={participantId}
-          nickname={nickname}
-        />
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
+          <ParticipantControls
+            sessionId={sessionId}
+            slideId={currentSlide.id}
+            participantId={participantId}
+            nickname={nickname}
+          />
+        </div>
       )}
     </div>
   );
+}
+
+export default function JoinSessionPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ParticipantView />
+    </Suspense>
+  )
 }

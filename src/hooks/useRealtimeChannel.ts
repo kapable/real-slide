@@ -13,36 +13,40 @@ export function useRealtimeChannel(
 ) {
   const channelRef = useRef<RealtimeChannel | null>(null);
 
+  const onBroadcastRef = useRef(config?.onBroadcast);
+  const onPostgresChangesRef = useRef(config?.onPostgresChanges);
+
   useEffect(() => {
-    // Subscribe to channel
+    onBroadcastRef.current = config?.onBroadcast;
+    onPostgresChangesRef.current = config?.onPostgresChanges;
+  }, [config?.onBroadcast, config?.onPostgresChanges]);
+
+  useEffect(() => {
     const channel = supabase.channel(channelName);
 
-    if (config?.onBroadcast) {
+    if (onBroadcastRef.current) {
       channel.on("broadcast", { event: "*" }, (payload) => {
-        config.onBroadcast?.(payload.payload);
+        onBroadcastRef.current?.({ event: payload.event, ...payload.payload });
       });
     }
 
-    if (config?.onPostgresChanges) {
+    if (onPostgresChangesRef.current) {
       channel.on(
         "postgres_changes",
         { event: "*", schema: "public" },
         (payload) => {
-          config.onPostgresChanges?.(payload);
+          onPostgresChangesRef.current?.(payload);
         },
       );
     }
 
-    channel.subscribe((status) => {
-      console.log("Channel status:", status);
-    });
-
+    channel.subscribe();
     channelRef.current = channel;
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [channelName, config?.onBroadcast, config?.onPostgresChanges]);
+  }, [channelName]);
 
   return {
     broadcast: (event: string, payload: any) => {

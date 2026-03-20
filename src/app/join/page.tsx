@@ -3,6 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft, Users, Sparkles, Loader2, KeyRound, UserCircle } from "lucide-react";
 
 export default function JoinPage() {
   const router = useRouter();
@@ -27,7 +31,6 @@ export default function JoinPage() {
 
     try {
       setIsLoading(true);
-      // 세션 코드가 유효한지 확인
       const response = await fetch(
         `/api/sessions/validate/${sessionCode.toUpperCase()}`,
       );
@@ -38,7 +41,6 @@ export default function JoinPage() {
 
       const { sessionId } = await response.json();
 
-      // 닉네임과 함께 참여 페이지로 이동
       router.push(
         `/join/${sessionId}?nickname=${encodeURIComponent(nickname)}`,
       );
@@ -50,84 +52,116 @@ export default function JoinPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-500 to-pink-600">
-      <div className="max-w-2xl mx-auto px-4 py-12">
-        {/* 상단 네비게이션 */}
-        <div className="flex justify-between items-center mb-12">
-          <Link
-            href="/"
-            className="text-white text-lg font-bold hover:opacity-80"
-          >
-            ← Real-Slide
-          </Link>
+    <div className="min-h-screen bg-muted/30 flex flex-col">
+      <div className="container max-w-2xl flex-1 flex flex-col py-12">
+        <div className="mb-8">
+          <Button variant="ghost" asChild className="gap-2 -ml-4 text-muted-foreground hover:text-foreground">
+            <Link href="/">
+              <ArrowLeft className="h-4 w-4" />
+              메인으로 돌아가기
+            </Link>
+          </Button>
         </div>
 
-        {/* 메인 카드 */}
-        <div className="bg-white rounded-lg shadow-2xl p-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">세션 참여</h1>
-          <p className="text-gray-600 mb-8">
-            발표자가 제공한 코드를 입력하여 세션에 참여하세요.
-          </p>
-
-          <form onSubmit={handleJoin} className="space-y-6">
-            {/* 세션 코드 입력 */}
-            <div>
-              <label className="block text-gray-700 font-semibold mb-2">
-                세션 코드
-              </label>
-              <input
-                type="text"
-                value={sessionCode}
-                onChange={(e) => setSessionCode(e.target.value.toUpperCase())}
-                placeholder="예: ABC123"
-                maxLength={6}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-center text-2xl tracking-widest font-mono"
-                disabled={isLoading}
-              />
+        <Card className="shadow-xl border-none glass-shadow overflow-hidden">
+          <div className="h-2 bg-gradient-to-r from-purple-600 to-pink-600" />
+          <CardHeader className="space-y-4 pt-8">
+            <div className="bg-purple-500/10 w-12 h-12 rounded-2xl flex items-center justify-center text-purple-600">
+              <Users className="h-6 w-6" />
             </div>
-
-            {/* 닉네임 입력 */}
-            <div>
-              <label className="block text-gray-700 font-semibold mb-2">
-                닉네임
-              </label>
-              <input
-                type="text"
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                placeholder="예: John, 김지은"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                disabled={isLoading}
-              />
+            <div className="space-y-1">
+              <CardTitle className="text-3xl font-bold tracking-tight">세션 참여하기</CardTitle>
+              <CardDescription className="text-base">
+                발표자가 제공한 코드를 입력하여 실시간 발표에 참여하세요.
+              </CardDescription>
             </div>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleJoin} className="space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="sessionCode" className="text-sm font-medium leading-none flex items-center gap-2">
+                    <KeyRound className="h-4 w-4 text-purple-600" />
+                    세션 코드
+                  </label>
+                  <Input
+                    id="sessionCode"
+                    type="text"
+                    value={sessionCode}
+                    onChange={(e) => setSessionCode(e.target.value.toUpperCase())}
+                    placeholder="ABC123"
+                    maxLength={6}
+                    className="h-14 text-2xl text-center tracking-[0.5em] font-mono font-bold uppercase border-2 focus-visible:ring-purple-500"
+                    disabled={isLoading}
+                  />
+                </div>
 
-            {/* 에러 표시 */}
-            {error && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                {error}
+                <div className="space-y-2">
+                  <label htmlFor="nickname" className="text-sm font-medium leading-none flex items-center gap-2">
+                    <UserCircle className="h-4 w-4 text-purple-600" />
+                    닉네임
+                  </label>
+                  <Input
+                    id="nickname"
+                    type="text"
+                    value={nickname}
+                    onChange={(e) => setNickname(e.target.value)}
+                    placeholder="참여 시 사용할 이름"
+                    className="h-12 text-lg focus-visible:ring-purple-500"
+                    disabled={isLoading}
+                  />
+                </div>
               </div>
-            )}
 
-            {/* 제출 버튼 */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-purple-500 hover:bg-purple-600 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg transition"
-            >
-              {isLoading ? "참여 중..." : "참여"}
-            </button>
-          </form>
+              {error && (
+                <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg text-sm font-medium animate-in fade-in slide-in-from-top-1">
+                  {error}
+                </div>
+              )}
 
-          {/* 팁 섹션 */}
-          <div className="mt-8 pt-8 border-t border-gray-200">
-            <h3 className="text-gray-700 font-semibold mb-4">💡 팁</h3>
-            <ul className="text-gray-600 text-sm space-y-2">
-              <li>• 세션 코드는 발표자가 알려줄 것입니다.</li>
-              <li>• 닉네임은 변경할 수 없으므로 신중하게 입력하세요.</li>
-              <li>• 참여하면 실시간으로 발표자의 슬라이드를 볼 수 있습니다.</li>
-            </ul>
-          </div>
-        </div>
+              <Button
+                type="submit"
+                size="lg"
+                disabled={isLoading}
+                className="w-full h-12 text-lg font-semibold bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-600/20 transition-all active:scale-[0.98]"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    참여 중...
+                  </>
+                ) : (
+                  <>
+                    세션 입장하기
+                    <Sparkles className="ml-2 h-5 w-5" />
+                  </>
+                )}
+              </Button>
+            </form>
+          </CardContent>
+          <CardFooter className="bg-muted/50 border-t p-6">
+            <div className="space-y-3 w-full">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-purple-600" />
+                참여 팁
+              </h3>
+              <ul className="text-sm text-muted-foreground space-y-2">
+                <li className="flex gap-2">
+                  <span className="text-purple-600 font-bold">•</span>
+                  세션 코드는 대소문자를 구분하지 않습니다.
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-purple-600 font-bold">•</span>
+                  참여 후에는 실시간 투표와 퀴즈에 참여할 수 있습니다.
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-purple-600 font-bold">•</span>
+                  궁금한 점은 실시간 댓글창을 통해 질문해 보세요.
+                </li>
+              </ul>
+            </div>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   );

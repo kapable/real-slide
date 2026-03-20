@@ -1,8 +1,11 @@
-// src/components/ParticipantControls.tsx
 "use client";
 
 import { useState } from "react";
-import { Hand, MessageSquare } from "lucide-react";
+import { Hand, MessageSquare, Cloud, Sparkles, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
 
 interface ParticipantControlsProps {
   sessionId: string;
@@ -21,6 +24,8 @@ export default function ParticipantControls({
   const [wordcloudInput, setWordcloudInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  const { broadcast } = useRealtimeChannel(`session-${sessionId}`);
+
   const handleToggleHand = async () => {
     setIsLoading(true);
     try {
@@ -36,7 +41,18 @@ export default function ParticipantControls({
       });
 
       if (res.ok) {
-        setHandUp(!handUp);
+        const newStatus = !handUp;
+        setHandUp(newStatus);
+        broadcast("hands-up:change", { 
+          participantId, 
+          nickname, 
+          isUp: newStatus,
+          toggledAt: new Date().toISOString()
+        });
+      } else {
+        const errorData = await res.json();
+        console.error("Failed to toggle hand:", errorData);
+        alert(`손 들기 실패: ${errorData.message || errorData.error || "서버 오류"}`);
       }
     } catch (error) {
       console.error("Error toggling hand:", error);
@@ -71,37 +87,55 @@ export default function ParticipantControls({
   };
 
   return (
-    <div className="flex gap-3 p-4 bg-gray-50 border-t border-gray-200 flex-wrap">
+    <div className="glass px-4 py-2.5 rounded-3xl flex items-center gap-3 glass-shadow border-white/20 animate-in slide-in-from-bottom-8 duration-500">
       {/* Hands Up Button */}
-      <button
+      <Button
         onClick={handleToggleHand}
         disabled={isLoading}
-        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition ${
-          handUp
-            ? "bg-red-500 text-white hover:bg-red-600"
-            : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-100"
-        } disabled:opacity-50`}
+        variant={handUp ? "destructive" : "outline"}
+        size="lg"
+        className={cn(
+          "h-12 rounded-2xl gap-2 font-black uppercase text-[10px] tracking-widest transition-all active:scale-[0.98]",
+          handUp 
+            ? "bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20" 
+            : "bg-background/50 hover:bg-accent border-muted"
+        )}
       >
-        <Hand size={18} />손 {handUp ? "내리기" : "들기"}
-      </button>
+        {isLoading ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Hand size={16} />
+        )}
+        <span>손 {handUp ? "내리기" : "들기"}</span>
+      </Button>
+
+      <div className="w-[1px] h-6 bg-muted-foreground/10 mx-1" />
 
       {/* Wordcloud Input */}
-      <form onSubmit={handleSubmitWordcloud} className="flex gap-2 flex-1">
-        <input
-          type="text"
-          placeholder="단어를 입력하세요..."
-          value={wordcloudInput}
-          onChange={(e) => setWordcloudInput(e.target.value)}
-          disabled={isLoading}
-          className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <button
+      <form onSubmit={handleSubmitWordcloud} className="flex items-center gap-2 group">
+        <div className="relative flex items-center w-48 sm:w-64">
+           <Cloud className="absolute left-3 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
+           <Input
+            type="text"
+            placeholder="단어를 보내주세요..."
+            value={wordcloudInput}
+            onChange={(e) => setWordcloudInput(e.target.value)}
+            disabled={isLoading}
+            className="h-12 pl-10 pr-4 rounded-2xl bg-background/50 border-muted focus-visible:ring-primary/20 text-xs font-medium"
+          />
+        </div>
+        <Button
           type="submit"
           disabled={isLoading || !wordcloudInput.trim()}
-          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 transition font-medium text-sm"
+          size="icon"
+          className="h-12 w-12 rounded-2xl shadow-lg shadow-primary/10 transition-all active:scale-[0.98]"
         >
-          <MessageSquare size={18} />
-        </button>
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Sparkles size={18} />
+          )}
+        </Button>
       </form>
     </div>
   );

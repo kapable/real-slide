@@ -8,7 +8,39 @@ import { VoteChart } from "@/components/VoteChart";
 import HandsUpPanel from "@/components/HandsUpPanel";
 import CommentSection from "@/components/CommentSection";
 import WordcloudDisplay from "@/components/WordcloudDisplay";
+import { PresenterSidebar } from "@/components/PresenterSidebar";
+import { AddSlideForm } from "@/components/AddSlideForm";
 import { supabase } from "@/lib/supabase";
+import { 
+  SidebarProvider, 
+  SidebarInset, 
+} from "@/components/ui/sidebar";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogTrigger, 
+  DialogHeader, 
+  DialogTitle 
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  Plus, 
+  Maximize2, 
+  Settings, 
+  LogOut,
+  Presentation as PresentationIcon,
+  MessageSquare,
+  Hand,
+  BarChart2,
+  HelpCircle,
+  Link as LinkIcon,
+  Share2
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function PresenterPage() {
   const router = useRouter();
@@ -18,15 +50,11 @@ export default function PresenterPage() {
   const [slides, setSlides] = useState<Slide[]>([]);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [shareCode, setShareCode] = useState("");
-  const [newSlideTitle, setNewSlideTitle] = useState("");
-  const [newSlideContent, setNewSlideContent] = useState("");
-  const [slideType, setSlideType] = useState("slide");
-  const [options, setOptions] = useState(["옵션 1", "옵션 2", "옵션 3"]);
-  const [correctAnswer, setCorrectAnswer] = useState(0);
   const [votes, setVotes] = useState<Record<number, number>>({});
-
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isAddSlideOpen, setIsAddSlideOpen] = useState(false);
+  
   const channelRef = useRef<any>(null);
 
   // Fetch slides on mount
@@ -34,36 +62,17 @@ export default function PresenterPage() {
     const fetchSlides = async () => {
       try {
         const response = await fetch(`/api/slides/${sessionId}`);
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          console.error("API error details:", errorData);
-          throw new Error(
-            `Failed to load slides: ${response.status} - ${errorData.error || ""}`,
-          );
-        }
-
+        if (!response.ok) throw new Error("Failed to load slides");
         const data = await response.json();
-        if (!Array.isArray(data)) {
-          throw new Error("Invalid response format");
-        }
-
         setSlides(data);
 
-        // Get session details to show share code
         const sessionResponse = await fetch(`/api/sessions/${sessionId}`);
-        if (!sessionResponse.ok) {
-          throw new Error(`Failed to load session: ${sessionResponse.status}`);
+        if (sessionResponse.ok) {
+          const sessionData = await sessionResponse.json();
+          setShareCode(sessionData.share_code);
         }
-
-        const sessionData = await sessionResponse.json();
-        setShareCode(sessionData.share_code);
       } catch (err) {
-        const errorMsg =
-          err instanceof Error ? err.message : "Failed to load slides";
-        setError(errorMsg);
-        console.error("Load error:", err);
-        setSlides([]);
+        setError(err instanceof Error ? err.message : "Failed to load slides");
       } finally {
         setIsLoading(false);
       }
@@ -72,7 +81,6 @@ export default function PresenterPage() {
     fetchSlides();
   }, [sessionId]);
 
-  // Update vote/quiz chart
   const updateVoteChart = useCallback(async (slideId: string, type: string) => {
     try {
       const endpoint = type === "quiz" ? `/api/quiz/${slideId}` : `/api/votes/${slideId}`;
@@ -83,68 +91,41 @@ export default function PresenterPage() {
       const counts: Record<number, number> = {};
       results.forEach((item: any) => {
         const index = type === "quiz" ? item.answer_index : item.option_index;
-        const count = counts[index] || 0;
-        counts[index] = count + 1;
+        counts[index] = (counts[index] || 0) + 1;
       });
 
       setVotes(counts);
     } catch (err) {
-      console.error("Failed to update voting/quiz data:", err);
+      console.error("Failed to update voting data:", err);
     }
   }, []);
 
-  // Set up realtime subscriptions
+  // Realtime
   useEffect(() => {
     const channel = supabase
       .channel(`session-${sessionId}`)
-      .on(
-        "broadcast",
-        { event: "slide:change" },
-        (payload: { payload: { slideIndex: number } }) => {
-          setCurrentSlideIndex(payload.payload.slideIndex);
-          setVotes({});
-        },
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "votes",
-        },
-        (payload: { new: { slide_id: string } }) => {
-          // Only update if it's for current slide
-          const currentSlide = slides[currentSlideIndex];
-          if (currentSlide && currentSlide.type === "vote" && payload.new?.slide_id === currentSlide.id) {
-            updateVoteChart(currentSlide.id, "vote");
-          }
-        },
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "quiz_answers",
-        },
-        (payload: { new: { slide_id: string } }) => {
-          // Only update if it's for current slide
-          const currentSlide = slides[currentSlideIndex];
-          if (currentSlide && currentSlide.type === "quiz" && payload.new?.slide_id === currentSlide.id) {
-            updateVoteChart(currentSlide.id, "quiz");
-          }
-        },
-      )
+      .on("broadcast", { event: "slide:change" }, (payload: any) => {
+        setCurrentSlideIndex(payload.payload.slideIndex);
+        setVotes({});
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "votes" }, (payload: any) => {
+        const currentSlide = slides[currentSlideIndex];
+        if (currentSlide?.type === "vote" && payload.new?.slide_id === currentSlide.id) {
+          updateVoteChart(currentSlide.id, "vote");
+        }
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "quiz_answers" }, (payload: any) => {
+        const currentSlide = slides[currentSlideIndex];
+        if (currentSlide?.type === "quiz" && payload.new?.slide_id === currentSlide.id) {
+          updateVoteChart(currentSlide.id, "quiz");
+        }
+      })
       .subscribe();
 
     channelRef.current = channel;
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [sessionId, slides, currentSlideIndex, updateVoteChart]);
 
-  // Load vote/quiz data when slide changes
   useEffect(() => {
     const currentSlide = slides[currentSlideIndex];
     if (currentSlide && (currentSlide.type === "vote" || currentSlide.type === "quiz")) {
@@ -152,21 +133,8 @@ export default function PresenterPage() {
     }
   }, [currentSlideIndex, slides, updateVoteChart]);
 
-  const handleAddSlide = async () => {
-    if (!newSlideTitle.trim()) {
-      setError("Please enter a slide title");
-      return;
-    }
-
+  const handleAddSlide = async (slideData: any) => {
     try {
-      const slideData = {
-        type: slideType,
-        title: newSlideTitle,
-        content: newSlideContent,
-        options: slideType === "slide" ? null : options,
-        correctAnswer: slideType === "quiz" ? correctAnswer : null,
-      };
-
       const response = await fetch(`/api/slides/${sessionId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -177,320 +145,173 @@ export default function PresenterPage() {
 
       const newSlide = await response.json();
       setSlides([...slides, newSlide]);
-      setNewSlideTitle("");
-      setNewSlideContent("");
-      setOptions(["옵션 1", "옵션 2", "옵션 3"]);
-      setCorrectAnswer(0);
-      setError("");
+      setIsAddSlideOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error occurred");
     }
   };
 
-  const handleNextSlide = () => {
-    const nextIndex = Math.min(currentSlideIndex + 1, slides.length - 1);
-    setCurrentSlideIndex(nextIndex);
-
-    // Broadcast to all participants
+  const syncSlide = (index: number) => {
+    setCurrentSlideIndex(index);
     channelRef.current?.send({
       type: "broadcast",
       event: "slide:change",
-      payload: {
-        event: "slide:change",
-        slideIndex: nextIndex,
-      },
+      payload: { slideIndex: index },
     });
-
     setVotes({});
-    if (slides[nextIndex]) {
-      updateVoteChart(slides[nextIndex].id, slides[nextIndex].type);
-    }
   };
 
-  const handlePrevSlide = () => {
-    const prevIndex = Math.max(currentSlideIndex - 1, 0);
-    setCurrentSlideIndex(prevIndex);
-
-    // Broadcast to all participants
-    channelRef.current?.send({
-      type: "broadcast",
-      event: "slide:change",
-      payload: {
-        event: "slide:change",
-        slideIndex: prevIndex,
-      },
-    });
-
-    setVotes({});
-    if (slides[prevIndex]) {
-      updateVoteChart(slides[prevIndex].id, slides[prevIndex].type);
-    }
-  };
+  const handleNextSlide = () => syncSlide(Math.min(currentSlideIndex + 1, slides.length - 1));
+  const handlePrevSlide = () => syncSlide(Math.max(currentSlideIndex - 1, 0));
 
   const currentSlide = slides[currentSlideIndex];
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        Loading...
-      </div>
-    );
-  }
+  if (isLoading) return <div className="h-svh w-full flex items-center justify-center bg-background"><PresentationIcon className="h-10 w-10 animate-pulse text-primary" /></div>;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Top Navigation */}
-      <div className="bg-white border-b border-gray-200 p-4">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">
-              Presenter Dashboard
-            </h1>
-            <p className="text-sm text-gray-600 mt-1">
-              Session Code:{" "}
-              <span className="font-mono font-bold text-blue-600">
-                {shareCode}
-              </span>
-            </p>
-          </div>
-          <div className="space-x-2">
-            <button
-              onClick={() => router.push("/")}
-              className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
-            >
-              Exit
-            </button>
-          </div>
-        </div>
-      </div>
+    <SidebarProvider>
+      <div className="flex h-svh w-full bg-muted/20 overflow-hidden">
+        {/* Left: Slide List Sidebar */}
+        <PresenterSidebar 
+          slides={slides}
+          currentSlideIndex={currentSlideIndex}
+          onSelectSlide={syncSlide}
+          onAddSlideClick={() => setIsAddSlideOpen(true)}
+          shareCode={shareCode}
+        />
 
-      <div className="max-w-7xl mx-auto p-4">
-        <div className="grid grid-cols-12 gap-4 h-[calc(100vh-120px)]">
-          {/* Left Panel: Add/List Slides (2 columns) */}
-          <div className="col-span-2 bg-white rounded-lg shadow p-4 overflow-y-auto">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">
-              슬라이드 추가
-            </h2>
+        <SidebarInset className="flex flex-col flex-1 overflow-hidden">
+          {/* Header */}
+          <header className="h-14 flex items-center justify-between px-6 border-b bg-background/50 backdrop-blur-md sticky top-0 z-10">
+            <div className="flex items-center gap-4">
+              <h2 className="font-bold tracking-tight">발표 제어 센터</h2>
+              {currentSlide && (
+                <Badge variant="secondary" className="px-2 py-0 h-5 text-[10px] font-bold uppercase tracking-widest">
+                  {currentSlide.type} Mode
+                </Badge>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" className="h-8 gap-2" onClick={() => {
+                const url = `${window.location.origin}/join/${shareCode}`;
+                navigator.clipboard.writeText(url);
+              }}>
+                <Share2 className="h-3.5 w-3.5" />
+                <span className="text-xs">링크 복사</span>
+              </Button>
+              <Button variant="default" size="sm" className="h-8 gap-2 shadow-lg shadow-primary/20" asChild>
+                <Link href={`/join/${sessionId}`} target="_blank">
+                  <Maximize2 className="h-3.5 w-3.5" />
+                  <span className="text-xs">참여자 뷰 열기</span>
+                </Link>
+              </Button>
+            </div>
+          </header>
 
-            {error && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded mb-4 text-sm">
-                {error}
+          <main className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 scrollbar-hide">
+            <div className="flex flex-col lg:flex-row gap-6 h-full">
+              
+              {/* Center Column: Slide + Nav + Results */}
+              <div className="flex-1 flex flex-col gap-6 min-w-0">
+                <div className="relative aspect-video w-full group">
+                  {currentSlide ? (
+                    <SlidePresentation
+                      title={currentSlide.title}
+                      content={currentSlide.content}
+                      type={currentSlide.type as any}
+                      options={currentSlide.options ? JSON.parse(currentSlide.options as string) : []}
+                      className="shadow-2xl border-none"
+                    />
+                  ) : (
+                    <div className="h-full bg-background rounded-2xl border-2 border-dashed border-muted-foreground/20 flex flex-col items-center justify-center space-y-4 text-muted-foreground">
+                      <Plus className="h-12 w-12 opacity-20" />
+                      <p className="font-bold opacity-40 uppercase tracking-widest text-sm text-center">
+                        슬라이드를 추가하여<br />발표를 시작하세요
+                      </p>
+                      <Button variant="outline" size="sm" className="h-8 text-xs font-bold" onClick={() => setIsAddSlideOpen(true)}>
+                        첫 슬라이드 만들기
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {/* Floating Control Overlay */}
+                  <div className="absolute inset-x-0 bottom-6 flex justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="glass px-2 py-1.5 rounded-2xl flex items-center gap-1 glass-shadow pointer-events-auto border-white/40">
+                      <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl" onClick={handlePrevSlide} disabled={currentSlideIndex === 0}>
+                        <ChevronLeft className="h-5 w-5" />
+                      </Button>
+                      <div className="px-4 text-[10px] font-black uppercase tracking-[0.2em] min-w-[80px] text-center">
+                        {slides.length > 0 ? `${currentSlideIndex + 1} / ${slides.length}` : "No Slide"}
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl" onClick={handleNextSlide} disabled={currentSlideIndex >= slides.length - 1}>
+                        <ChevronRight className="h-5 w-5" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Secondary Content: Results or Wordcloud */}
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 pb-12">
+                  {currentSlide && (currentSlide.type === "vote" || currentSlide.type === "quiz") && (
+                    <Card className="shadow-xl shadow-primary/5 border-none p-6 space-y-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <BarChart2 className="h-4 w-4 text-primary" />
+                          <h3 className="font-bold text-sm uppercase tracking-tight">실시간 통계</h3>
+                        </div>
+                        <Badge variant="outline" className="text-[9px] font-black h-5">LIVE</Badge>
+                      </div>
+                      <VoteChart
+                        votes={votes}
+                        options={currentSlide.options ? JSON.parse(currentSlide.options as string) : []}
+                        type="bar"
+                        correctAnswer={currentSlide.type === "quiz" ? (currentSlide as any).correct_answer : undefined}
+                      />
+                    </Card>
+                  )}
+                  
+                  {currentSlide && (
+                    <WordcloudDisplay slideId={currentSlide.id} className="shadow-xl shadow-blue-500/5 border-none h-full" />
+                  )}
+                </div>
               </div>
-            )}
 
-            <div className="space-y-4">
-              {/* Slide Type Select */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  슬라이드 타입
-                </label>
-                <select
-                  value={slideType}
-                  onChange={(e) => setSlideType(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded"
-                >
-                  <option value="slide">일반 슬라이드</option>
-                  <option value="vote">투표</option>
-                  <option value="quiz">퀴즈</option>
-                </select>
-              </div>
-
-              {/* Title Input */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  제목
-                </label>
-                <input
-                  type="text"
-                  value={newSlideTitle}
-                  onChange={(e) => setNewSlideTitle(e.target.value)}
-                  placeholder="슬라이드 제목"
-                  className="w-full px-3 py-2 border border-gray-300 rounded"
-                />
-              </div>
-
-              {/* Content Input */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  콘텐츠
-                </label>
-                <textarea
-                  value={newSlideContent}
-                  onChange={(e) => setNewSlideContent(e.target.value)}
-                  placeholder="슬라이드 내용"
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-                />
-              </div>
-
-              {/* Vote/Quiz Options */}
-              {slideType !== "slide" && (
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    선택지 (엔터로 구분)
-                  </label>
-                  <textarea
-                    value={options.join("\n")}
-                    onChange={(e) => setOptions(e.target.value.split("\n"))}
-                    placeholder="선택지 1&#10;선택지 2&#10;선택지 3"
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+              {/* Right Column: Interaction Panel */}
+              <div className="w-full lg:w-80 flex flex-col gap-6 flex-shrink-0">
+                <div className="h-[280px]">
+                  <HandsUpPanel sessionId={sessionId} />
+                </div>
+                <div className="flex-1 min-h-[400px]">
+                  <CommentSection
+                    slideId={currentSlide?.id || ""}
+                    participantId="presenter"
+                    nickname="발표자"
                   />
                 </div>
-              )}
-
-              {/* Quiz Correct Answer */}
-              {slideType === "quiz" && (
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    정답 (선택지 인덱스: 0부터 시작)
-                  </label>
-                  <select
-                    value={correctAnswer}
-                    onChange={(e) => setCorrectAnswer(Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded"
-                  >
-                    {options.map((_, index) => (
-                      <option key={index} value={index}>
-                        {index + 1}번 선택지
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <button
-                onClick={handleAddSlide}
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 rounded"
-              >
-                슬라이드 추가
-              </button>
-            </div>
-
-            {/* Slide List */}
-            <div className="mt-6 border-t pt-4">
-              <h3 className="font-semibold text-gray-700 mb-3">
-                슬라이드 목록
-              </h3>
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {slides.map((slide, index) => (
-                  <button
-                    key={slide.id}
-                    onClick={() => setCurrentSlideIndex(index)}
-                    className={`w-full p-2 text-left rounded text-sm transition ${
-                      index === currentSlideIndex
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-100 hover:bg-gray-200"
-                    }`}
-                  >
-                    <div className="font-semibold">
-                      {index + 1}. {slide.title || "(제목 없음)"}
-                    </div>
-                    <div className="text-xs opacity-75">
-                      {slide.type === "slide"
-                        ? "슬라이드"
-                        : slide.type === "vote"
-                          ? "투표"
-                          : "퀴즈"}
-                    </div>
-                  </button>
-                ))}
               </div>
             </div>
-          </div>
+          </main>
+        </SidebarInset>
 
-          {/* Center: Large Slide View (5 columns) */}
-          <div className="col-span-5 flex flex-col gap-4 overflow-y-auto">
-            <div
-              className="bg-white rounded-lg shadow p-6 flex-shrink-0"
-              style={{ aspectRatio: "16/9" }}
-            >
-              {currentSlide ? (
-                <SlidePresentation
-                  title={currentSlide.title}
-                  content={currentSlide.content}
-                  type={currentSlide.type}
-                  options={
-                    currentSlide.options
-                      ? JSON.parse(currentSlide.options as string)
-                      : []
-                  }
-                />
-              ) : (
-                <div className="h-full flex items-center justify-center text-gray-400">
-                  슬라이드를 추가하여 시작하세요
-                </div>
-              )}
-            </div>
-
-            {/* Slide Navigation */}
-            <div className="bg-white rounded-lg shadow p-4 flex justify-between items-center flex-shrink-0">
-              <button
-                onClick={handlePrevSlide}
-                disabled={currentSlideIndex === 0}
-                className="px-4 py-2 bg-gray-300 disabled:bg-gray-200 text-gray-800 rounded hover:bg-gray-400 transition"
-              >
-                ← 이전
-              </button>
-              <span className="text-gray-700 font-semibold">
-                {slides.length > 0
-                  ? `${currentSlideIndex + 1} / ${slides.length}`
-                  : "슬라이드 없음"}
-              </span>
-              <button
-                onClick={handleNextSlide}
-                disabled={currentSlideIndex >= slides.length - 1}
-                className="px-4 py-2 bg-blue-500 disabled:bg-gray-200 text-white rounded hover:bg-blue-600 transition"
-              >
-                다음 →
-              </button>
-            </div>
-
-            {/* Vote/Quiz Chart */}
-            {currentSlide &&
-              (currentSlide.type === "vote" || currentSlide.type === "quiz") &&
-              currentSlide.options && (
-                <div className="bg-white rounded-lg shadow p-4 flex-shrink-0">
-                  <h3 className="text-lg font-bold text-gray-800 mb-4">
-                    {currentSlide.type === "vote" ? "투표 결과" : "퀴즈 실시간 현황"}
-                  </h3>
-                  <VoteChart
-                    votes={votes}
-                    options={JSON.parse(currentSlide.options as string)}
-                    type="bar"
-                    correctAnswer={currentSlide.type === "quiz" ? currentSlide.correct_answer : undefined}
-                  />
-                </div>
-              )}
-
-            {/* Wordcloud Display */}
-            {currentSlide && (
-              <div className="bg-white rounded-lg shadow p-4 flex-shrink-0">
-                <WordcloudDisplay slideId={currentSlide.id} maxWords={50} />
-              </div>
-            )}
-          </div>
-
-          {/* Right Panel: Hands Up + Comments (5 columns) */}
-          <div className="col-span-5 flex flex-col gap-4 overflow-y-auto">
-            {/* Hands Up Panel */}
-            <div className="flex-shrink-0">
-              <HandsUpPanel sessionId={sessionId} />
-            </div>
-
-            {/* Comments Section */}
-            {currentSlide && (
-              <div className="flex-1 min-h-0">
-                <CommentSection
-                  slideId={currentSlide.id}
-                  participantId="presenter"
-                  nickname="발표자"
-                />
-              </div>
-            )}
-          </div>
-        </div>
+        {/* Add Slide Dialog */}
+        <Dialog open={isAddSlideOpen} onOpenChange={setIsAddSlideOpen}>
+          <DialogContent className="sm:max-w-[480px] p-8 gap-0 border-none shadow-2xl overflow-hidden glass rounded-[2rem]">
+            <DialogHeader className="sr-only">
+              <DialogTitle>새 슬라이드 추가</DialogTitle>
+            </DialogHeader>
+            <AddSlideForm 
+              onAdd={handleAddSlide} 
+              isLoading={isLoading} 
+              onCancel={() => setIsAddSlideOpen(false)} 
+            />
+          </DialogContent>
+        </Dialog>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }
+
+import Link from "next/link";
+import { Card } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
