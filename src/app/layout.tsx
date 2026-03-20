@@ -1,10 +1,18 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Real-Slide | 실시간 프레젠테이션",
   description:
     "Mentimeter & AhaSlides 같은 실시간 상호작용 프레젠테이션 플랫폼",
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  interactiveWidget: 'resizes-content',
 };
 
 export default function RootLayout({

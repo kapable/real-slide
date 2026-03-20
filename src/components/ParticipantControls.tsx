@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Hand, Sparkles, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,9 @@ export default function ParticipantControls({
   const [handUp, setHandUp] = useState(false);
   const [wordcloudInput, setWordcloudInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Fetch initial hand status
   useEffect(() => {
@@ -39,6 +42,41 @@ export default function ParticipantControls({
     if (sessionId && participantId) fetchStatus();
   }, [sessionId, participantId]);
   
+  // Advanced Keyboard Handling using VisualViewport
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const handleViewportChange = () => {
+      // Determine if keyboard is likely up (viewport height < 80% of window)
+      // and calculate the exact offset from the bottom
+      if (vv.height < window.innerHeight * 0.9) {
+        // Calculate the distance from the bottom of the layouts viewport to the bottom of the visual viewport
+        const offset = window.innerHeight - vv.height - (vv.offsetTop || 0);
+        setKeyboardOffset(Math.max(0, offset));
+      } else {
+        setKeyboardOffset(0);
+      }
+    };
+
+    vv.addEventListener("resize", handleViewportChange);
+    vv.addEventListener("scroll", handleViewportChange);
+
+    return () => {
+      vv.removeEventListener("resize", handleViewportChange);
+      vv.removeEventListener("scroll", handleViewportChange);
+    };
+  }, []);
+
+  // Ensure input is visible on focus
+  const handleFocus = () => {
+    setIsInputFocused(true);
+    // Extra insurance: scroll the page to ensure the input isn't hidden by browser quirks
+    setTimeout(() => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }, 100);
+  };
+
   const handleToggleHand = async () => {
     setIsLoading(true);
     try {
@@ -62,9 +100,6 @@ export default function ParticipantControls({
           isUp: newStatus,
           toggledAt: new Date().toISOString()
         });
-      } else {
-        const errorData = await res.json();
-        console.error("Failed to toggle hand:", errorData);
       }
     } catch (error) {
       console.error("Error toggling hand:", error);
@@ -103,10 +138,22 @@ export default function ParticipantControls({
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center px-4 mb-4 sm:mb-8 pointer-events-none">
+    <div 
+      ref={containerRef}
+      style={{ 
+        // Apply dynamic bottom offset when keyboard is active
+        transform: keyboardOffset > 0 ? `translateY(-${keyboardOffset}px)` : 'none',
+        transition: isInputFocused ? 'none' : 'transform 0.3s ease-out'
+      }}
+      className={cn(
+        "fixed bottom-0 left-0 right-0 z-50 flex justify-center px-4 mb-4 sm:mb-8 pointer-events-none transition-transform",
+        isInputFocused && "mb-2" // Tighten bottom margin when typing
+      )}
+    >
       <div className={cn(
         "glass px-6 py-5 rounded-[2.5rem] flex flex-col gap-5 glass-shadow border-white/20 animate-in slide-in-from-bottom-12 duration-700 w-full sm:w-[500px] pointer-events-auto",
-        "bg-background/95 backdrop-blur-3xl shadow-[0_12px_60px_-15px_rgba(0,0,0,0.4)]"
+        "bg-background/95 backdrop-blur-3xl shadow-[0_12px_60px_-15px_rgba(0,0,0,0.4)]",
+        keyboardOffset > 0 && "shadow-none"
       )}>
         {/* 1. Top Row: Large Input Field */}
         <form onSubmit={handleSubmitWordcloud} className="w-full flex flex-col gap-4">
@@ -116,6 +163,8 @@ export default function ParticipantControls({
               placeholder="여러분의 생각을 자유롭게 입력하세요..."
               value={wordcloudInput}
               onChange={(e) => setWordcloudInput(e.target.value)}
+              onFocus={handleFocus}
+              onBlur={() => setIsInputFocused(false)}
               disabled={isLoading}
               className={cn(
                 "h-16 pl-5 pr-14 rounded-3xl bg-muted/40 border-2 border-transparent transition-all text-base font-semibold placeholder:text-muted-foreground/40",
