@@ -57,7 +57,7 @@ export function PresenterSidebar({
   return (
     <Sidebar className="border-r shadow-sm">
       <SidebarHeader className="p-4 border-b">
-        <div className="flex items-center gap-2 px-2 py-1.5">
+        <Link href="/" className="flex items-center gap-2 px-2 py-1.5 hover:opacity-80 transition-opacity">
           <div className="bg-primary p-1.5 rounded-lg text-primary-foreground">
             <Presentation className="h-5 w-5" />
           </div>
@@ -65,7 +65,7 @@ export function PresenterSidebar({
             <span className="font-bold tracking-tight text-sm">Real-Slide</span>
             <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Presenter</span>
           </div>
-        </div>
+        </Link>
       </SidebarHeader>
 
       <SidebarContent>

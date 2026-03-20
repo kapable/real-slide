@@ -42,8 +42,13 @@ import {
   Monitor,
   Eye,
   EyeOff,
-  Check
+  Check,
+  QrCode,
+  Loader2,
+  Hash
 } from "lucide-react";
+import Link from "next/link";
+import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { FullScreenPresentation } from "@/components/FullScreenPresentation";
 
@@ -267,8 +272,88 @@ export default function PresenterPage() {
                 </Badge>
               )}
             </div>
-            
+            <div className="flex-1 flex justify-center items-center">
+              <div className="flex items-center gap-1 bg-muted/50 rounded-xl p-1 border shadow-inner">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 rounded-lg hover:bg-background transition-all" 
+                  onClick={handlePrevSlide} 
+                  disabled={currentSlideIndex === 0}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <div className="px-3 flex items-center gap-2 min-w-[80px] justify-center">
+                  <span className="text-xs font-bold text-primary">{currentSlideIndex + 1}</span>
+                  <span className="text-[10px] text-muted-foreground/30 font-black">/</span>
+                  <span className="text-xs font-bold text-muted-foreground">{slides.length}</span>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 rounded-lg hover:bg-background transition-all" 
+                  onClick={handleNextSlide} 
+                  disabled={currentSlideIndex >= slides.length - 1}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
             <div className="flex items-center gap-2">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 gap-2">
+                    <QrCode className="h-3.5 w-3.5" />
+                    <span className="text-xs">QR 코드</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[400px] p-0 border-none bg-transparent shadow-none flex flex-col items-center justify-center gap-6">
+                  <div className="bg-white p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.2)] flex flex-col items-center gap-6 animate-in zoom-in-95 duration-300">
+                    <div className="flex flex-col items-center gap-1 text-center">
+                      <DialogTitle className="text-xl font-bold tracking-tight text-slate-900">참여 QR 코드</DialogTitle>
+                      <p className="text-xs text-slate-400 font-medium">스마트폰으로 스캔하여 바로 접속하세요</p>
+                    </div>
+                    
+                    <div className="relative group p-4 bg-slate-50 rounded-2xl border-2 border-slate-100">
+                       <img 
+                         src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(`${window.location.origin}/join/${shareCode}`)}&size=240x240&bgcolor=f8fafc&color=0f172a&margin=10`} 
+                         alt="Session QR Code"
+                         className="w-60 h-60 min-w-60 min-h-60 rounded-lg shadow-sm group-hover:scale-[1.02] transition-transform duration-300"
+                       />
+                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                         <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-xl border border-slate-100 italic text-[10px] font-bold text-slate-800">
+                           {shareCode}
+                         </div>
+                       </div>
+                    </div>
+
+                    <div className="flex flex-col items-center gap-2">
+                       <div className="bg-primary/5 px-4 py-2 rounded-full border border-primary/10 flex items-center gap-2">
+                         <Hash className="h-3 w-3 text-primary" />
+                         <span className="text-lg font-mono font-bold tracking-[0.3em] text-primary">{shareCode}</span>
+                       </div>
+                       <p className="text-[10px] text-slate-400 font-black tracking-widest uppercase">Room Access Code</p>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-10 text-white hover:bg-white/10 rounded-full gap-2 px-6"
+                    onClick={() => {
+                       const url = `${window.location.origin}/join/${shareCode}`;
+                       navigator.clipboard.writeText(url);
+                       setIsCopied(true);
+                       setTimeout(() => setIsCopied(false), 2000);
+                    }}
+                  >
+                    {isCopied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
+                    <span className="font-bold">{isCopied ? "복사완료!" : "링크 복사하기"}</span>
+                  </Button>
+                </DialogContent>
+              </Dialog>
+
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -333,20 +418,6 @@ export default function PresenterPage() {
                     </div>
                   )}
                   
-                  {/* Floating Control Overlay */}
-                  <div className="absolute inset-x-0 bottom-6 flex justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="glass px-2 py-1.5 rounded-2xl flex items-center gap-1 glass-shadow pointer-events-auto border-white/40">
-                      <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl" onClick={handlePrevSlide} disabled={currentSlideIndex === 0}>
-                        <ChevronLeft className="h-5 w-5" />
-                      </Button>
-                      <div className="px-4 text-[10px] font-black uppercase tracking-[0.2em] min-w-[80px] text-center">
-                        {slides.length > 0 ? `${currentSlideIndex + 1} / ${slides.length}` : "No Slide"}
-                      </div>
-                      <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl" onClick={handleNextSlide} disabled={currentSlideIndex >= slides.length - 1}>
-                        <ChevronRight className="h-5 w-5" />
-                      </Button>
-                    </div>
-                  </div>
                 </div>
 
                 {/* Vote/Quiz Results (only for vote/quiz slides) */}
@@ -438,6 +509,4 @@ export default function PresenterPage() {
   );
 }
 
-import Link from "next/link";
-import { Card } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+

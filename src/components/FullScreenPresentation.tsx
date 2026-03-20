@@ -178,35 +178,37 @@ export function FullScreenPresentation({
 
       {/* Bottom Controls */}
       <div className={cn(
-        "absolute bottom-12 inset-x-0 flex justify-center items-center gap-8 z-[110] transition-all duration-500",
+        "absolute bottom-16 inset-x-0 flex justify-center items-center gap-8 z-[110] transition-all duration-500",
         showControls ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
       )}>
-        <div className="glass px-6 py-4 rounded-[2.5rem] flex items-center gap-6 shadow-2xl glass-shadow border-white/40">
+        <div className="bg-slate-900/95 dark:bg-slate-950/95 px-8 py-4 rounded-[3rem] flex items-center gap-8 shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10">
            <Button
              variant="ghost"
              size="icon"
-             className="h-14 w-14 rounded-2xl hover:bg-primary/10 transition-colors"
+             className="h-16 w-16 rounded-full text-white hover:bg-white/10 transition-all active:scale-95"
              onClick={onPrev}
              disabled={currentIndex === 0}
            >
-             <ChevronLeft className="h-8 w-8" />
+             <ChevronLeft className="h-10 w-10" />
            </Button>
 
-           <div className="flex flex-col items-center min-w-[120px]">
-             <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mb-1">Slide</span>
-             <span className="text-xl font-bold font-mono">
-               {currentIndex + 1} <span className="text-muted-foreground/30 font-light mx-1">/</span> {slides.length}
-             </span>
+           <div className="flex flex-col items-center min-w-[140px] text-white">
+             <span className="text-[11px] font-black uppercase tracking-[0.4em] text-blue-400 mb-1.5 opacity-60">Slide</span>
+             <div className="text-3xl font-bold font-mono flex items-center gap-3">
+               <span className="text-blue-400">{currentIndex + 1}</span>
+               <span className="opacity-20 text-xl font-light">/</span>
+               <span className="opacity-60">{slides.length}</span>
+             </div>
            </div>
 
            <Button
              variant="ghost"
              size="icon"
-             className="h-14 w-14 rounded-2xl hover:bg-primary/10 transition-colors"
+             className="h-16 w-16 rounded-full text-white hover:bg-white/10 transition-all active:scale-95"
              onClick={onNext}
              disabled={currentIndex >= slides.length - 1}
            >
-             <ChevronRight className="h-8 w-8" />
+             <ChevronRight className="h-10 w-10" />
            </Button>
 
            {/* Interactive Controls */}
