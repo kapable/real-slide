@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Hand, MessageSquare, Cloud, Sparkles, Loader2 } from "lucide-react";
+import { Hand, MessageSquare, Cloud, Sparkles, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -105,15 +105,12 @@ export default function ParticipantControls({
 
   return (
     <div className={cn(
-      "glass px-6 py-5 rounded-t-[2.5rem] sm:rounded-[2.5rem] flex flex-col gap-5 glass-shadow border-white/20 animate-in slide-in-from-bottom-12 duration-700 w-full sm:w-[500px]",
-      "bg-background/95 backdrop-blur-3xl shadow-[0_-12px_50px_-15px_rgba(0,0,0,0.3)]"
+      "glass px-6 py-5 rounded-[2.5rem] flex flex-col gap-5 glass-shadow border-white/20 animate-in slide-in-from-bottom-12 duration-700 w-full sm:w-[500px]",
+      "bg-background/95 backdrop-blur-3xl shadow-[0_12px_60px_-15px_rgba(0,0,0,0.4)]"
     )}>
       {/* 1. Top Row: Large Input Field */}
       <form onSubmit={handleSubmitWordcloud} className="w-full flex flex-col gap-4">
         <div className="relative group">
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 bg-primary/10 p-2 rounded-xl text-primary transition-all group-focus-within:bg-primary group-focus-within:text-white">
-            <Cloud className="h-5 w-5" />
-          </div>
           <Input
             type="text"
             placeholder="여러분의 생각을 자유롭게 입력하세요..."
@@ -121,10 +118,19 @@ export default function ParticipantControls({
             onChange={(e) => setWordcloudInput(e.target.value)}
             disabled={isLoading}
             className={cn(
-              "h-16 pl-16 pr-4 rounded-2xl bg-muted/40 border-2 border-transparent transition-all text-lg font-bold placeholder:text-muted-foreground/40",
+              "h-16 pl-5 pr-14 rounded-3xl bg-muted/40 border-2 border-transparent transition-all text-base font-semibold placeholder:text-muted-foreground/40",
               "focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:border-primary/20 focus-visible:bg-muted/60"
             )}
           />
+          {wordcloudInput && (
+            <button
+              type="button"
+              onClick={() => setWordcloudInput("")}
+              className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-all active:scale-90"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
         </div>
 
         {/* 2. Bottom Row: Utility Buttons */}
@@ -175,11 +181,6 @@ export default function ParticipantControls({
           </Button>
         </div>
       </form>
-
-      {/* Subtle branding hint */}
-      <div className="flex justify-center sm:hidden">
-        <div className="h-1 w-12 bg-muted-foreground/20 rounded-full" />
-      </div>
     </div>
   );
 }
