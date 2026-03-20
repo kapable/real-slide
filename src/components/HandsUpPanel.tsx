@@ -28,10 +28,11 @@ export default function HandsUpPanel({ sessionId }: HandsUpPanelProps) {
     }
   };
 
-  useRealtimeChannel(`session-${sessionId}`, {
-    onBroadcast: (payload) => {
-      if (payload.event === "hands-up:change") {
-        fetchHandsUp();
+  useRealtimeChannel(`hands-up-${sessionId}`, {
+    onPostgresChanges: (payload) => {
+      // hands_up 테이블의 변화가 생기면 무조건 다시 불러오기
+      if (payload.table === "hands_up") {
+         fetchHandsUp();
       }
     },
   });

@@ -19,32 +19,38 @@ export function useRealtimeChannel(
   useEffect(() => {
     onBroadcastRef.current = config?.onBroadcast;
     onPostgresChangesRef.current = config?.onPostgresChanges;
-  }, [config?.onBroadcast, config?.onPostgresChanges]);
+  });
 
   useEffect(() => {
+    // Skip empty channel names (e.g. before resolvedSessionId is set)
+    if (!channelName) return;
+
+    console.log(`[Realtime] Subscribing to channel: ${channelName}`);
     const channel = supabase.channel(channelName);
 
-    if (onBroadcastRef.current) {
-      channel.on("broadcast", { event: "*" }, (payload) => {
-        onBroadcastRef.current?.({ event: payload.event, ...payload.payload });
-      });
-    }
+    // Always register broadcast listener — use ref so the latest callback is used
+    channel.on("broadcast", { event: "*" }, (payload) => {
+      console.log(`[Realtime] Broadcast received on ${channelName}:`, payload.event);
+      onBroadcastRef.current?.({ event: payload.event, ...payload.payload });
+    });
 
-    if (onPostgresChangesRef.current) {
-      channel.on(
-        "postgres_changes",
-        { event: "*", schema: "public" },
-        (payload) => {
-          onPostgresChangesRef.current?.(payload);
-        },
-      );
-    }
+    channel.on(
+      "postgres_changes",
+      { event: "*", schema: "public" },
+      (payload) => {
+        onPostgresChangesRef.current?.(payload);
+      },
+    );
 
-    channel.subscribe();
+    channel.subscribe((status) => {
+      console.log(`[Realtime] Channel ${channelName} status: ${status}`);
+    });
     channelRef.current = channel;
 
     return () => {
+      console.log(`[Realtime] Unsubscribing from channel: ${channelName}`);
       supabase.removeChannel(channel);
+      channelRef.current = null;
     };
   }, [channelName]);
 

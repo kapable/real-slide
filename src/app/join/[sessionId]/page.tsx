@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { Slide } from "@/types";
 import { SlidePresentation } from "@/components/SlidePresentation";
-import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
+import { supabase } from "@/lib/supabase";
 import CommentSection from "@/components/CommentSection";
 import ParticipantControls from "@/components/ParticipantControls";
 import WordcloudDisplay from "@/components/WordcloudDisplay";
@@ -34,26 +34,62 @@ function ParticipantView() {
   const [slides, setSlides] = useState<Slide[]>([]);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [participantId, setParticipantId] = useState("");
+  const [resolvedSessionId, setResolvedSessionId] = useState("");
   const [hasVoted, setHasVoted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const resolvedRef = useRef("");
+  const channelRef = useRef<any>(null);
 
+  const fetchSlides = async (sId: string) => {
+    try {
+      const slidesResponse = await fetch(`/api/slides/${sId}`);
+      if (!slidesResponse.ok) throw new Error("슬라이드 로드 실패");
+      const slidesData = await slidesResponse.json();
+      setSlides(slidesData);
+    } catch (err) {
+      console.error("Error fetching slides:", err);
+    }
+  };
+
+  // 1. Initialize: resolve session ID + join
   useEffect(() => {
     const initialize = async () => {
       try {
+        let actualSessionId = sessionId;
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+        if (!uuidRegex.test(sessionId)) {
+          const resolveResponse = await fetch(`/api/sessions/validate/${sessionId.toUpperCase()}`);
+          if (!resolveResponse.ok) throw new Error("유효하지 않은 세션 코드입니다.");
+          const { sessionId: resolvedUuid } = await resolveResponse.json();
+          actualSessionId = resolvedUuid;
+        }
+
+        resolvedRef.current = actualSessionId;
+        setResolvedSessionId(actualSessionId);
+
+        const storageKey = `rs-participant-${actualSessionId}`;
+        const storedId = localStorage.getItem(storageKey);
+
+        if (storedId) {
+          setParticipantId(storedId);
+          await fetchSlides(actualSessionId);
+          setIsLoading(false);
+          return;
+        }
+
         const response = await fetch("/api/participants/join", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId, nickname }),
+          body: JSON.stringify({ sessionId: actualSessionId, nickname }),
         });
         if (!response.ok) throw new Error("참여 실패");
         const { participantId: pId } = await response.json();
+        
+        localStorage.setItem(storageKey, pId);
         setParticipantId(pId);
-
-        const slidesResponse = await fetch(`/api/slides/${sessionId}`);
-        if (!slidesResponse.ok) throw new Error("슬라이드 로드 실패");
-        const slidesData = await slidesResponse.json();
-        setSlides(slidesData);
+        await fetchSlides(actualSessionId);
       } catch (err) {
         setError(err instanceof Error ? err.message : "오류 발생");
         setSlides([]);
@@ -64,17 +100,51 @@ function ParticipantView() {
     initialize();
   }, [sessionId, nickname]);
 
-  useRealtimeChannel(`session-${sessionId}`, {
-    onBroadcast: (payload) => {
-      if (payload.event === "slide:change") {
-        setCurrentSlideIndex(payload.slideIndex);
+  // 2. Realtime: subscribe ONLY when resolvedSessionId is ready
+  useEffect(() => {
+    if (!resolvedSessionId) return;
+
+    const channelName = `session-${resolvedSessionId}`;
+    console.log(`[Participant] Subscribing to ${channelName}`);
+
+    const channel = supabase
+      .channel(channelName)
+      .on("broadcast", { event: "slide:change" }, (payload: any) => {
+        console.log("[Participant] slide:change received", payload.payload);
+        setCurrentSlideIndex(payload.payload.slideIndex);
         setHasVoted(false);
-      }
-    },
-  });
+      })
+      .on("broadcast", { event: "slides:update" }, (payload: any) => {
+        console.log("[Participant] slides:update received");
+        const sid = resolvedRef.current;
+        if (sid) fetchSlides(sid);
+      })
+      .on("broadcast", { event: "slide:result" }, (payload: any) => {
+        const { slideId, showResult } = payload.payload;
+        setSlides(currentSlides => 
+          currentSlides.map(s => s.id === slideId ? { ...s, show_result: showResult } : s)
+        );
+      })
+      .subscribe((status) => {
+        console.log(`[Participant] Channel ${channelName} status: ${status}`);
+      });
+
+    channelRef.current = channel;
+
+    return () => {
+      console.log(`[Participant] Unsubscribing from ${channelName}`);
+      supabase.removeChannel(channel);
+      channelRef.current = null;
+    };
+  }, [resolvedSessionId]);
+
+  // Broadcast function to pass to child components (avoids duplicate channel)
+  const broadcastFn = (event: string, payload: any) => {
+    channelRef.current?.send({ type: "broadcast", event, payload });
+  };
 
   const handleVote = async (optionIndex: number, type: "vote" | "quiz") => {
-    if (!participantId || hasVoted) return;
+    if (!participantId || !resolvedSessionId || hasVoted) return;
     try {
       const endpoint = type === "quiz" ? "/api/quiz/submit" : "/api/votes/submit";
       const body = type === "quiz" 
@@ -151,6 +221,8 @@ function ParticipantView() {
                 content={currentSlide.content}
                 type={currentSlide.type as any}
                 options={currentSlide.options ? JSON.parse(currentSlide.options as string) : []}
+                correctAnswer={currentSlide.correct_answer || undefined}
+                showResult={currentSlide.show_result}
                 className="shadow-2xl border-none"
               />
             ) : (
@@ -235,10 +307,11 @@ function ParticipantView() {
       {participantId && currentSlide && (
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
           <ParticipantControls
-            sessionId={sessionId}
+            sessionId={resolvedSessionId}
             slideId={currentSlide.id}
             participantId={participantId}
             nickname={nickname}
+            broadcastFn={broadcastFn}
           />
         </div>
       )}

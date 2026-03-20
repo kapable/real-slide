@@ -12,7 +12,7 @@ export async function GET(
       .from("comments")
       .select("*")
       .eq("slide_id", slideId)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: true });
 
     if (error) {
       console.error("Error fetching comments:", error);

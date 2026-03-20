@@ -35,6 +35,7 @@ CREATE TABLE public.slides (
   content TEXT,
   options TEXT, -- JSON string of options
   correct_answer INTEGER, -- For quiz
+  show_result BOOLEAN DEFAULT false, -- Reveal quiz/vote results
   created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -60,11 +61,20 @@ CREATE TABLE public.votes (
 CREATE TABLE public.comments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   slide_id UUID NOT NULL REFERENCES slides(id) ON DELETE CASCADE,
-  participant_id UUID NOT NULL REFERENCES participants(id) ON DELETE CASCADE,
+  participant_id UUID REFERENCES participants(id) ON DELETE CASCADE, -- Null if presenter
+  parent_id UUID REFERENCES public.comments(id) ON DELETE CASCADE,   -- For replies
+  nickname TEXT DEFAULT '익명',
   text TEXT NOT NULL,
   likes INTEGER DEFAULT 0,
   created_at TIMESTAMP DEFAULT NOW()
 );
+
+-- RLS policies for comments
+ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Enable read access for all users" ON public.comments FOR SELECT USING (true);
+CREATE POLICY "Enable insert access for all users" ON public.comments FOR INSERT WITH CHECK (true);
+CREATE POLICY "Enable update access for all users" ON public.comments FOR UPDATE USING (true);
+CREATE POLICY "Enable delete access for all users" ON public.comments FOR DELETE USING (true);
 
 -- Hands up table
 CREATE TABLE public.hands_up (
@@ -161,6 +171,12 @@ CREATE POLICY "Enable read access for all users" ON public.wordcloud_items
 
 CREATE POLICY "Enable insert access for all users" ON public.wordcloud_items
   AS PERMISSIVE FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Enable update access for all users" ON public.wordcloud_items
+  AS PERMISSIVE FOR UPDATE USING (true);
+
+CREATE POLICY "Enable delete access for all users" ON public.wordcloud_items
+  AS PERMISSIVE FOR DELETE USING (true);
 
 CREATE POLICY "Enable read access for all users" ON public.quiz_answers
   AS PERMISSIVE FOR SELECT USING (true);

@@ -38,9 +38,13 @@ import {
   BarChart2,
   HelpCircle,
   Link as LinkIcon,
-  Share2
+  Share2,
+  Monitor,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FullScreenPresentation } from "@/components/FullScreenPresentation";
 
 export default function PresenterPage() {
   const router = useRouter();
@@ -54,6 +58,7 @@ export default function PresenterPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [isAddSlideOpen, setIsAddSlideOpen] = useState(false);
+  const [isPresentationOpen, setIsPresentationOpen] = useState(false);
   
   const channelRef = useRef<any>(null);
 
@@ -100,31 +105,56 @@ export default function PresenterPage() {
     }
   }, []);
 
+  const slidesRef = useRef(slides);
+  const indexRef = useRef(currentSlideIndex);
+
+  useEffect(() => {
+    slidesRef.current = slides;
+    indexRef.current = currentSlideIndex;
+  }, [slides, currentSlideIndex]);
+
   // Realtime
   useEffect(() => {
+    if (!sessionId) return;
+
     const channel = supabase
       .channel(`session-${sessionId}`)
       .on("broadcast", { event: "slide:change" }, (payload: any) => {
-        setCurrentSlideIndex(payload.payload.slideIndex);
-        setVotes({});
+        const newIndex = payload.payload.slideIndex;
+        if (newIndex !== indexRef.current) {
+          setCurrentSlideIndex(newIndex);
+          setVotes({});
+        }
+      })
+      .on("broadcast", { event: "slide:result" }, (payload: any) => {
+        const { slideId, showResult } = payload.payload;
+        setSlides(currentSlides => 
+          currentSlides.map(s => s.id === slideId ? { ...s, show_result: showResult } : s)
+        );
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "votes" }, (payload: any) => {
-        const currentSlide = slides[currentSlideIndex];
-        if (currentSlide?.type === "vote" && payload.new?.slide_id === currentSlide.id) {
-          updateVoteChart(currentSlide.id, "vote");
+        const curSlide = slidesRef.current[indexRef.current];
+        if (curSlide?.type === "vote" && payload.new?.slide_id === curSlide.id) {
+          updateVoteChart(curSlide.id, "vote");
         }
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "quiz_answers" }, (payload: any) => {
-        const currentSlide = slides[currentSlideIndex];
-        if (currentSlide?.type === "quiz" && payload.new?.slide_id === currentSlide.id) {
-          updateVoteChart(currentSlide.id, "quiz");
+        const curSlide = slidesRef.current[indexRef.current];
+        if (curSlide?.type === "quiz" && payload.new?.slide_id === curSlide.id) {
+          updateVoteChart(curSlide.id, "quiz");
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          console.log(`Subscribed to session-${sessionId}`);
+        }
+      });
 
     channelRef.current = channel;
-    return () => { supabase.removeChannel(channel); };
-  }, [sessionId, slides, currentSlideIndex, updateVoteChart]);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [sessionId, updateVoteChart]);
 
   useEffect(() => {
     const currentSlide = slides[currentSlideIndex];
@@ -144,7 +174,16 @@ export default function PresenterPage() {
       if (!response.ok) throw new Error("Failed to add slide");
 
       const newSlide = await response.json();
-      setSlides([...slides, newSlide]);
+      const updatedSlides = [...slides, newSlide];
+      setSlides(updatedSlides);
+      
+      // 참여자들에게 슬라이드 목록이 업데이트 되었음을 알림
+      channelRef.current?.send({
+        type: "broadcast",
+        event: "slides:update",
+        payload: { count: updatedSlides.length },
+      });
+
       setIsAddSlideOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error occurred");
@@ -159,6 +198,31 @@ export default function PresenterPage() {
       payload: { slideIndex: index },
     });
     setVotes({});
+  };
+
+  const toggleResult = async () => {
+    if (!currentSlide) return;
+    const nextShowResult = !currentSlide.show_result;
+    
+    // 1. DB 업데이트
+    await supabase
+      .from("slides")
+      .update({ show_result: nextShowResult })
+      .eq("id", currentSlide.id);
+
+    // 2. 로컬 상태 업데이트
+    setSlides(slides.map(s => 
+      s.id === currentSlide.id ? { ...s, show_result: nextShowResult } : s
+    ));
+
+    // 3. 브로드캐스트 (실시간)
+    if (channelRef.current) {
+      channelRef.current.send({
+        type: "broadcast",
+        event: "slide:result",
+        payload: { slideId: currentSlide.id, showResult: nextShowResult },
+      });
+    }
   };
 
   const handleNextSlide = () => syncSlide(Math.min(currentSlideIndex + 1, slides.length - 1));
@@ -200,7 +264,16 @@ export default function PresenterPage() {
                 <Share2 className="h-3.5 w-3.5" />
                 <span className="text-xs">링크 복사</span>
               </Button>
-              <Button variant="default" size="sm" className="h-8 gap-2 shadow-lg shadow-primary/20" asChild>
+              <Button 
+                variant="default" 
+                size="sm" 
+                className="h-8 gap-2 shadow-lg shadow-primary/20 bg-primary/10 text-primary border-primary/20 hover:bg-primary hover:text-white"
+                onClick={() => setIsPresentationOpen(true)}
+              >
+                <Monitor className="h-3.5 w-3.5" />
+                <span className="text-xs">전체화면 발표</span>
+              </Button>
+              <Button variant="outline" size="sm" className="h-8 gap-2 border-dashed" asChild>
                 <Link href={`/join/${sessionId}`} target="_blank">
                   <Maximize2 className="h-3.5 w-3.5" />
                   <span className="text-xs">참여자 뷰 열기</span>
@@ -210,7 +283,7 @@ export default function PresenterPage() {
           </header>
 
           <main className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 scrollbar-hide">
-            <div className="flex flex-col lg:flex-row gap-6 h-full">
+            <div className="flex flex-col lg:flex-row gap-6">
               
               {/* Center Column: Slide + Nav + Results */}
               <div className="flex-1 flex flex-col gap-6 min-w-0">
@@ -221,6 +294,9 @@ export default function PresenterPage() {
                       content={currentSlide.content}
                       type={currentSlide.type as any}
                       options={currentSlide.options ? JSON.parse(currentSlide.options as string) : []}
+                      correctAnswer={currentSlide.correct_answer || undefined}
+                      showResult={currentSlide.show_result}
+                      votes={votes}
                       className="shadow-2xl border-none"
                     />
                   ) : (
@@ -251,30 +327,39 @@ export default function PresenterPage() {
                   </div>
                 </div>
 
-                {/* Secondary Content: Results or Wordcloud */}
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 pb-12">
-                  {currentSlide && (currentSlide.type === "vote" || currentSlide.type === "quiz") && (
-                    <Card className="shadow-xl shadow-primary/5 border-none p-6 space-y-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <BarChart2 className="h-4 w-4 text-primary" />
-                          <h3 className="font-bold text-sm uppercase tracking-tight">실시간 통계</h3>
-                        </div>
+                {/* Vote/Quiz Results (only for vote/quiz slides) */}
+                {currentSlide && (currentSlide.type === "vote" || currentSlide.type === "quiz") && (
+                  <Card className="shadow-xl shadow-primary/5 border-none p-6 space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <BarChart2 className="h-4 w-4 text-primary" />
+                        <h3 className="font-bold text-sm uppercase tracking-tight">실시간 통계</h3>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <Button 
+                          variant={currentSlide.show_result ? "default" : "outline"}
+                          size="sm"
+                          className={cn(
+                            "gap-2 px-3 h-7 shadow-sm transition-all active:scale-95",
+                            currentSlide.show_result && "bg-primary shadow-primary/20 text-white"
+                          )}
+                          onClick={toggleResult}
+                        >
+                          {currentSlide.show_result ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          <span className="text-[10px] font-bold">{currentSlide.show_result ? "공개 중" : "정답 공개"}</span>
+                        </Button>
                         <Badge variant="outline" className="text-[9px] font-black h-5">LIVE</Badge>
                       </div>
-                      <VoteChart
-                        votes={votes}
-                        options={currentSlide.options ? JSON.parse(currentSlide.options as string) : []}
-                        type="bar"
-                        correctAnswer={currentSlide.type === "quiz" ? (currentSlide as any).correct_answer : undefined}
-                      />
-                    </Card>
-                  )}
-                  
-                  {currentSlide && (
-                    <WordcloudDisplay slideId={currentSlide.id} className="shadow-xl shadow-blue-500/5 border-none h-full" />
-                  )}
-                </div>
+                    </div>
+                    <VoteChart
+                      votes={votes}
+                      options={currentSlide.options ? JSON.parse(currentSlide.options as string) : []}
+                      type="bar"
+                      correctAnswer={currentSlide.correct_answer || undefined}
+                      showResult={currentSlide.show_result}
+                    />
+                  </Card>
+                )}
               </div>
 
               {/* Right Column: Interaction Panel */}
@@ -291,6 +376,13 @@ export default function PresenterPage() {
                 </div>
               </div>
             </div>
+
+            {/* Full-width Wordcloud (below the 2-column layout) */}
+            {currentSlide && (
+              <div className="pb-6">
+                <WordcloudDisplay slideId={currentSlide.id} isPresenter={true} className="shadow-xl shadow-blue-500/5 border-none min-h-[450px]" />
+              </div>
+            )}
           </main>
         </SidebarInset>
 
@@ -307,6 +399,18 @@ export default function PresenterPage() {
             />
           </DialogContent>
         </Dialog>
+
+        <FullScreenPresentation
+          slides={slides}
+          currentIndex={currentSlideIndex}
+          isOpen={isPresentationOpen}
+          votes={votes}
+          onClose={() => setIsPresentationOpen(false)}
+          onPrev={handlePrevSlide}
+          onNext={handleNextSlide}
+          onSelect={syncSlide}
+          onToggleResult={toggleResult}
+        />
       </div>
     </SidebarProvider>
   );

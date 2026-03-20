@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "./ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Layout, BarChart2, HelpCircle, X, Loader2 } from "lucide-react";
+import { Plus, Layout, BarChart2, HelpCircle, X, Loader2, Cloud, UserCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AddSlideFormProps {
@@ -21,24 +21,35 @@ export function AddSlideForm({ onAdd, isLoading, onCancel }: AddSlideFormProps) 
   const [content, setContent] = useState("");
   const [options, setOptions] = useState(["옵션 1", "옵션 2", "옵션 3"]);
   const [correctAnswer, setCorrectAnswer] = useState(0);
+  const [wordcloudOnePerUser, setWordcloudOnePerUser] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
 
-    await onAdd({
+    const slideData: any = {
       type: slideType,
       title,
       content,
       options: slideType === "slide" ? null : options,
       correctAnswer: slideType === "quiz" ? correctAnswer : null,
-    });
+    };
+
+    // 일반 슬라이드에서 워드클라우드 설정 추가
+    if (slideType === "slide") {
+      slideData.metadata = {
+        wordcloud_one_per_user: wordcloudOnePerUser,
+      };
+    }
+
+    await onAdd(slideData);
 
     // Reset form
     setTitle("");
     setContent("");
     setOptions(["옵션 1", "옵션 2", "옵션 3"]);
     setCorrectAnswer(0);
+    setWordcloudOnePerUser(false);
   };
 
   return (
@@ -104,6 +115,41 @@ export function AddSlideForm({ onAdd, isLoading, onCancel }: AddSlideFormProps) 
           />
         </div>
 
+        {/* Wordcloud 설정 (일반 슬라이드) */}
+        {slideType === "slide" && (
+          <div className="space-y-2">
+            <label className="text-[10px] uppercase font-bold text-muted-foreground/80 tracking-widest px-1">
+              <Cloud className="h-3 w-3 inline mr-1" />
+              워드클라우드 설정
+            </label>
+            <button
+              type="button"
+              onClick={() => setWordcloudOnePerUser(!wordcloudOnePerUser)}
+              className={cn(
+                "w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left",
+                wordcloudOnePerUser 
+                  ? "border-primary bg-primary/5 text-primary" 
+                  : "border-muted hover:border-primary/30 text-muted-foreground"
+              )}
+            >
+              <UserCheck className="h-5 w-5 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold">계정 당 1회 답변 제한</p>
+                <p className="text-[10px] opacity-70">각 참여자가 하나의 단어만 보낼 수 있습니다.</p>
+              </div>
+              <div className={cn(
+                "w-10 h-5 rounded-full transition-all flex-shrink-0 relative",
+                wordcloudOnePerUser ? "bg-primary" : "bg-muted"
+              )}>
+                <div className={cn(
+                  "absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all",
+                  wordcloudOnePerUser ? "left-[22px]" : "left-0.5"
+                )} />
+              </div>
+            </button>
+          </div>
+        )}
+
         {slideType !== "slide" && (
           <div className="space-y-2">
             <div className="flex items-center justify-between px-1">
@@ -113,7 +159,7 @@ export function AddSlideForm({ onAdd, isLoading, onCancel }: AddSlideFormProps) 
             <Textarea 
               value={options.join("\n")} 
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setOptions(e.target.value.split("\n"))} 
-              placeholder="옵션 1&#10;옵션 2&#10;옵션 3" 
+              placeholder={"옵션 1\n옵션 2\n옵션 3"} 
               rows={4}
               className="text-xs font-mono resize-none bg-muted/30 focus-visible:ring-primary/30"
               required

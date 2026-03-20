@@ -17,6 +17,19 @@ export async function POST(request: NextRequest) {
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+    // 1. 기존 참여자가 있는지 확인 (세션 내 닉네임 기준)
+    const { data: existing, error: findError } = await supabase
+      .from("participants")
+      .select("id")
+      .eq("session_id", sessionId)
+      .eq("nickname", nickname.trim())
+      .maybeSingle();
+
+    if (existing) {
+      return NextResponse.json({ participantId: existing.id });
+    }
+
+    // 2. 신규 참여자 추가
     const { data, error } = await supabase
       .from("participants")
       .insert([
@@ -29,7 +42,8 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+       console.error("Join insert error:", error);
+       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ participantId: data.id });

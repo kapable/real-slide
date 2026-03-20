@@ -19,6 +19,7 @@ interface VoteChartProps {
   options: string[];
   type?: "bar" | "pie";
   correctAnswer?: number; // 퀴즈용 정답 인덱스
+  showResult?: boolean; // 정답 공개 여부
   className?: string;
 }
 
@@ -27,6 +28,7 @@ export function VoteChart({
   options, 
   type = "bar", 
   correctAnswer,
+  showResult = false,
   className
 }: VoteChartProps) {
   const data = options.map((label, index) => ({
@@ -75,7 +77,7 @@ export function VoteChart({
                 <Cell
                   key={`cell-${index}`}
                   fill={
-                    correctAnswer !== undefined
+                    showResult && correctAnswer !== undefined
                       ? entry.isCorrect
                         ? CORRECT_COLOR
                         : INCORRECT_COLOR
@@ -101,12 +103,12 @@ export function VoteChart({
             {data.map((entry, index) => (
               <linearGradient key={`gradient-${index}`} id={`colorBar-${index}`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={
-                  correctAnswer !== undefined
+                  showResult && correctAnswer !== undefined
                     ? (entry.isCorrect ? CORRECT_COLOR : INCORRECT_COLOR)
                     : COLORS[index % COLORS.length]
                 } stopOpacity={1}/>
                 <stop offset="100%" stopColor={
-                  correctAnswer !== undefined
+                  showResult && correctAnswer !== undefined
                     ? (entry.isCorrect ? CORRECT_COLOR : INCORRECT_COLOR)
                     : COLORS[index % COLORS.length]
                 } stopOpacity={0.6}/>
@@ -118,8 +120,26 @@ export function VoteChart({
             dataKey="name" 
             axisLine={false} 
             tickLine={false} 
-            tick={{ fontSize: 10, fontWeight: 700, fill: 'hsl(var(--muted-foreground))' }}
-            dy={10}
+            tick={(props: any) => {
+              const { x, y, payload } = props;
+              const isCorrect = showResult && data[payload.index].isCorrect;
+              return (
+                <g transform={`translate(${x},${y})`}>
+                  <text
+                    x={0}
+                    y={0}
+                    dy={16}
+                    textAnchor="middle"
+                    fill={isCorrect ? "#f59e0b" : "hsl(var(--muted-foreground))"}
+                    fontSize={10}
+                    fontWeight={isCorrect ? 900 : 700}
+                    className={cn("uppercase tracking-tight", isCorrect && "animate-pulse")}
+                  >
+                    {isCorrect ? `★ ${payload.value}` : payload.value}
+                  </text>
+                </g>
+              );
+            }}
           />
           <YAxis 
             axisLine={false} 
@@ -128,12 +148,15 @@ export function VoteChart({
             width={30}
           />
           <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.2 }} />
-          <Bar dataKey="votes" radius={[10, 10, 0, 0]} animationDuration={1500}>
+          <Bar dataKey="votes" radius={[10, 10, 0, 0]} animationDuration={1500} minPointSize={10}>
             {data.map((entry, index) => (
               <Cell 
                 key={`cell-${index}`} 
                 fill={`url(#colorBar-${index})`}
-                className="hover:opacity-90 transition-opacity outline-none"
+                className={cn(
+                  "hover:opacity-90 transition-opacity outline-none",
+                  showResult && entry.isCorrect && "stroke-yellow-400 stroke-2"
+                )}
               />
             ))}
           </Bar>

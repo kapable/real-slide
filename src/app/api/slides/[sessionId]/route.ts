@@ -70,7 +70,7 @@ export async function POST(
 ) {
   try {
     const { sessionId } = await params;
-    const { type, title, content, options, correctAnswer } =
+    const { type, title, content, options, correctAnswer, metadata } =
       await request.json();
 
     if (!supabaseUrl || !supabaseAnonKey) {
@@ -110,7 +110,9 @@ export async function POST(
           type: type || "slide",
           title: title || "",
           content: content || "",
-          options: options || null,
+          options: type === "slide"
+            ? (metadata ? JSON.stringify(metadata) : null)
+            : (options || null),
           correct_answer: correctAnswer || null,
         },
       ])

@@ -1,17 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Hand, MessageSquare, Cloud, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
 
 interface ParticipantControlsProps {
   sessionId: string;
   slideId: string;
   participantId: string;
   nickname: string;
+  broadcastFn?: (event: string, payload: any) => void;
 }
 
 export default function ParticipantControls({
@@ -19,12 +19,25 @@ export default function ParticipantControls({
   slideId,
   participantId,
   nickname,
+  broadcastFn,
 }: ParticipantControlsProps) {
   const [handUp, setHandUp] = useState(false);
   const [wordcloudInput, setWordcloudInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const { broadcast } = useRealtimeChannel(`session-${sessionId}`);
+  // Fetch initial hand status
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const res = await fetch(`/api/hands-up/status?sessionId=${sessionId}&participantId=${participantId}`);
+        if (res.ok) {
+           const { is_up } = await res.json();
+           setHandUp(is_up);
+        }
+      } catch (e) {}
+    };
+    if (sessionId && participantId) fetchStatus();
+  }, [sessionId, participantId]);
 
   const handleToggleHand = async () => {
     setIsLoading(true);
@@ -43,7 +56,7 @@ export default function ParticipantControls({
       if (res.ok) {
         const newStatus = !handUp;
         setHandUp(newStatus);
-        broadcast("hands-up:change", { 
+        broadcastFn?.("hands-up:change", { 
           participantId, 
           nickname, 
           isUp: newStatus,
@@ -73,11 +86,15 @@ export default function ParticipantControls({
         body: JSON.stringify({
           slideId,
           word: wordcloudInput,
+          participantId,
         }),
       });
 
       if (res.ok) {
         setWordcloudInput("");
+      } else if (res.status === 409) {
+        const errorData = await res.json();
+        alert(errorData.error || "이미 답변을 제출하셨습니다.");
       }
     } catch (error) {
       console.error("Error submitting wordcloud:", error);
