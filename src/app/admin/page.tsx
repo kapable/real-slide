@@ -18,6 +18,7 @@ import {
   Folder
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 
 interface Stats {
@@ -81,40 +82,53 @@ function getActivityColor(type: Activity["type"]) {
 
 export default function AdminDashboard() {
   const { t } = useLanguage();
+  const { toast } = useToast();
   const [stats, setStats] = useState<Stats | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isActivityLoading, setIsActivityLoading] = useState(true);
+  const [statsError, setStatsError] = useState(false);
+  const [activityError, setActivityError] = useState(false);
+
+  const fetchStats = async () => {
+    setStatsError(false);
+    try {
+      const res = await fetch("/api/admin/stats");
+      if (!res.ok) throw new Error("Failed to fetch");
+      const data = await res.json();
+      setStats(data);
+    } catch (error) {
+      setStatsError(true);
+      toast({
+        variant: "destructive",
+        title: t.admin.errors.fetchFailed,
+        description: t.admin.errors.serverError,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchActivities = async () => {
+    setActivityError(false);
+    try {
+      const res = await fetch("/api/admin/activity");
+      if (!res.ok) throw new Error("Failed to fetch");
+      const data = await res.json();
+      setActivities(data);
+    } catch (error) {
+      setActivityError(true);
+      toast({
+        variant: "destructive",
+        title: t.admin.errors.fetchFailed,
+        description: t.admin.errors.serverError,
+      });
+    } finally {
+      setIsActivityLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const res = await fetch("/api/admin/stats");
-        if (res.ok) {
-          const data = await res.json();
-          setStats(data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch stats:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    const fetchActivities = async () => {
-      try {
-        const res = await fetch("/api/admin/activity");
-        if (res.ok) {
-          const data = await res.json();
-          setActivities(data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch activities:", error);
-      } finally {
-        setIsActivityLoading(false);
-      }
-    };
-
     fetchStats();
     fetchActivities();
   }, []);

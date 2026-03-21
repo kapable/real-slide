@@ -39,6 +39,7 @@ import {
   Presentation,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 
 interface Session {
@@ -60,6 +61,7 @@ interface SessionsResponse {
 
 export default function SessionsPage() {
   const { t } = useLanguage();
+  const { toast } = useToast();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -67,9 +69,11 @@ export default function SessionsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState(false);
 
   const fetchSessions = useCallback(async () => {
     setIsLoading(true);
+    setFetchError(false);
     try {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -79,17 +83,21 @@ export default function SessionsPage() {
       });
 
       const res = await fetch(`/api/admin/sessions?${params}`);
-      if (res.ok) {
-        const data: SessionsResponse = await res.json();
-        setSessions(data.sessions);
-        setTotalPages(data.totalPages);
-      }
+      if (!res.ok) throw new Error("Failed to fetch");
+      const data: SessionsResponse = await res.json();
+      setSessions(data.sessions);
+      setTotalPages(data.totalPages);
     } catch (error) {
-      console.error("Failed to fetch sessions:", error);
+      setFetchError(true);
+      toast({
+        variant: "destructive",
+        title: t.admin.errors.fetchFailed,
+        description: t.admin.errors.serverError,
+      });
     } finally {
       setIsLoading(false);
     }
-  }, [page, search, status]);
+  }, [page, search, status, toast, t]);
 
   useEffect(() => {
     fetchSessions();
@@ -103,18 +111,32 @@ export default function SessionsPage() {
         method: "DELETE",
       });
       if (res.ok) {
+        toast({ variant: "success", title: t.admin.success.deleted });
         fetchSessions();
+      } else {
+        throw new Error("Delete failed");
       }
     } catch (error) {
-      console.error("Failed to delete session:", error);
+      toast({
+        variant: "destructive",
+        title: t.admin.errors.deleteFailed,
+      });
     }
   };
 
   const handleCopyLink = async (shareCode: string, sessionId: string) => {
-    const url = `${window.location.origin}/join/${shareCode}`;
-    await navigator.clipboard.writeText(url);
-    setCopiedId(sessionId);
-    setTimeout(() => setCopiedId(null), 2000);
+    try {
+      const url = `${window.location.origin}/join/${shareCode}`;
+      await navigator.clipboard.writeText(url);
+      setCopiedId(sessionId);
+      toast({ title: t.admin.success.copied });
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: t.admin.errors.unknownError,
+      });
+    }
   };
 
   const formatDate = (dateString: string) => {

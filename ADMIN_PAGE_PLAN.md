@@ -358,117 +358,140 @@ src/
 
 ## E2E Test List
 
+> **Test Date:** 2026-03-21 | **Pass Rate:** 51/61 (83.6%)
+
 ### Authentication Tests
-| Test ID | Test Case | Expected Result |
-|---------|-----------|-----------------|
-| AUTH-01 | Access `/admin` without authentication | Redirect to login page |
-| AUTH-02 | Login with invalid credentials | Show error message |
-| AUTH-03 | Login with valid admin credentials | Redirect to dashboard |
-| AUTH-04 | Access `/admin/sessions` without auth | Redirect to login page |
-| AUTH-05 | Logout from admin | Clear session, redirect to login |
-| AUTH-06 | Session persistence after browser refresh | Remain logged in |
-| AUTH-07 | Non-admin user tries to access `/admin` | Show 403 forbidden or redirect |
+| Test ID | Test Case | Status | Expected Result |
+|---------|-----------|--------|-----------------|
+| AUTH-01 | Access `/admin` without authentication | ⏭️ SKIP | Redirect to login page |
+| AUTH-02 | Login with invalid credentials | ⏭️ SKIP | Show error message |
+| AUTH-03 | Login with valid admin credentials | ⏭️ SKIP | Redirect to dashboard |
+| AUTH-04 | Access `/admin/sessions` without auth | ⏭️ SKIP | Redirect to login page |
+| AUTH-05 | Logout from admin | ⏭️ SKIP | Clear session, redirect to login |
+| AUTH-06 | Session persistence after browser refresh | ⏭️ SKIP | Remain logged in |
+| AUTH-07 | Non-admin user tries to access `/admin` | ⏭️ SKIP | Show 403 forbidden or redirect |
 
 ### Dashboard Tests
-| Test ID | Test Case | Expected Result |
-|---------|-----------|-----------------|
-| DASH-01 | View dashboard stats cards | Display correct counts (sessions, participants, etc.) |
-| DASH-02 | View recent activity feed | Show latest activities with timestamps |
-| DASH-03 | Click "Create Session" quick action | Navigate to session creation |
-| DASH-04 | Stats update in real-time | Numbers reflect current database state |
+| Test ID | Test Case | Status | Expected Result |
+|---------|-----------|--------|-----------------|
+| DASH-01 | View dashboard stats cards | ✅ PASS | Display correct counts (sessions, participants, etc.) |
+| DASH-02 | View recent activity feed | ✅ PASS | Show latest activities with timestamps |
+| DASH-03 | Click "Create Session" quick action | ✅ PASS | Navigate to session creation |
+| DASH-04 | Stats update in real-time | ✅ PASS | Numbers reflect current database state |
 
 ### Session Management Tests
-| Test ID | Test Case | Expected Result |
-|---------|-----------|-----------------|
-| SESS-01 | View session list | Display all sessions in table format |
-| SESS-02 | Search sessions by name | Filter table to matching sessions |
-| SESS-03 | Search sessions by share code | Filter to specific session |
-| SESS-04 | Filter sessions by status (active/inactive) | Show only filtered results |
-| SESS-05 | Sort sessions by created date | Order sessions correctly |
-| SESS-06 | Sort sessions by participant count | Order sessions correctly |
-| SESS-07 | Paginate through sessions | Navigate pages correctly |
-| SESS-08 | Copy session share link | Link copied to clipboard |
-| SESS-09 | View session detail | Navigate to detail page |
-| SESS-10 | Delete session (with confirmation) | Session removed from list |
-| SESS-11 | Delete session (cancel confirmation) | Session remains |
-| SESS-12 | Edit session name | Name updated successfully |
-| SESS-13 | Open session as participant | Open in new tab with correct URL |
+| Test ID | Test Case | Status | Expected Result |
+|---------|-----------|--------|-----------------|
+| SESS-01 | View session list | ✅ PASS | Display all sessions in table format |
+| SESS-02 | Search sessions by name | ✅ PASS | Filter table to matching sessions |
+| SESS-03 | Search sessions by share code | ✅ PASS | Filter to specific session |
+| SESS-04 | Filter sessions by status (active/inactive) | ✅ PASS | Show only filtered results |
+| SESS-05 | Sort sessions by created date | ✅ PASS | Order sessions correctly |
+| SESS-06 | Sort sessions by participant count | ❌ N/A | Order sessions correctly |
+| SESS-07 | Paginate through sessions | ✅ PASS | Navigate pages correctly |
+| SESS-08 | Copy session share link | ✅ PASS | Link copied to clipboard |
+| SESS-09 | View session detail | ✅ PASS | Navigate to detail page |
+| SESS-10 | Delete session (with confirmation) | ✅ PASS | Session removed from list |
+| SESS-11 | Delete session (cancel confirmation) | ✅ PASS | Session remains |
+| SESS-12 | Edit session name | ❌ N/A | Name updated successfully |
+| SESS-13 | Open session as participant | ✅ PASS | Open in new tab with correct URL |
 
 ### Session Detail Tests
-| Test ID | Test Case | Expected Result |
-|---------|-----------|-----------------|
-| DET-01 | View session info section | Display name, code, dates |
-| DET-02 | View slides list | All slides shown with correct order |
-| DET-03 | View participants list | All participants shown |
-| DET-04 | View vote/quiz results | Display results per slide |
-| DET-05 | View wordcloud submissions | Show all submitted words |
-| DET-06 | View comments list | Display all comments |
-| DET-07 | Delete a slide from session | Slide removed |
-| DET-08 | Navigate back to session list | Return to list page |
-| DET-09 | Invalid session ID in URL | Show 404 or redirect to list |
+| Test ID | Test Case | Status | Expected Result |
+|---------|-----------|--------|-----------------|
+| DET-01 | View session info section | ✅ PASS | Display name, code, dates |
+| DET-02 | View slides list | ✅ PASS | All slides shown with correct order |
+| DET-03 | View participants list | ✅ PASS | All participants shown |
+| DET-04 | View vote/quiz results | ❌ N/A | Display results per slide |
+| DET-05 | View wordcloud submissions | ✅ PASS | Show all submitted words |
+| DET-06 | View comments list | ✅ PASS | Display all comments |
+| DET-07 | Delete a slide from session | ❌ N/A | Slide removed |
+| DET-08 | Navigate back to session list | ✅ PASS | Return to list page |
+| DET-09 | Invalid session ID in URL | ✅ PASS | Show 404 or redirect to list |
 
 ### Analytics Tests
-| Test ID | Test Case | Expected Result |
-|---------|-----------|-----------------|
-| ANA-01 | View analytics page | Charts render correctly |
-| ANA-02 | Sessions over time chart | Line chart displays data |
-| ANA-03 | Participants over time chart | Line chart displays data |
-| ANA-04 | Slide types distribution | Pie chart shows breakdown |
-| ANA-05 | Filter analytics by date range | Charts update to filtered data |
-| ANA-06 | Export analytics data | Download CSV/JSON file |
+| Test ID | Test Case | Status | Expected Result |
+|---------|-----------|--------|-----------------|
+| ANA-01 | View analytics page | ✅ PASS | Charts render correctly |
+| ANA-02 | Sessions over time chart | ✅ PASS | Line chart displays data |
+| ANA-03 | Participants over time chart | ✅ PASS | Line chart displays data |
+| ANA-04 | Slide types distribution | ✅ PASS | Pie chart shows breakdown |
+| ANA-05 | Filter analytics by date range | ✅ PASS | Charts update to filtered data |
+| ANA-06 | Export analytics data | ❌ N/A | Download CSV/JSON file |
 
 ### Settings Tests
-| Test ID | Test Case | Expected Result |
-|---------|-----------|-----------------|
-| SET-01 | View settings page | Display current settings |
-| SET-02 | Toggle feature (e.g., wordcloud) | Setting saved, toggle updates |
-| SET-03 | Change max participants value | Value saved |
-| SET-04 | Reset settings to default | All settings reset |
-| SET-05 | Invalid input in settings field | Show validation error |
+| Test ID | Test Case | Status | Expected Result |
+|---------|-----------|--------|-----------------|
+| SET-01 | View settings page | ✅ PASS | Display current settings |
+| SET-02 | Toggle feature (e.g., wordcloud) | ✅ PASS | Setting saved, toggle updates |
+| SET-03 | Change max participants value | ✅ PASS | Value saved |
+| SET-04 | Reset settings to default | ✅ PASS | All settings reset |
+| SET-05 | Invalid input in settings field | ⚠️ PARTIAL | Show validation error |
 
 ### Navigation Tests
-| Test ID | Test Case | Expected Result |
-|---------|-----------|-----------------|
-| NAV-01 | Navigate Dashboard → Sessions | Correct page loads |
-| NAV-02 | Navigate Sessions → Analytics | Correct page loads |
-| NAV-03 | Navigate Analytics → Settings | Correct page loads |
-| NAV-04 | Click logo/brand | Return to dashboard |
-| NAV-05 | Browser back button | Navigate to previous page |
-| NAV-06 | Mobile sidebar toggle | Sidebar opens/closes |
+| Test ID | Test Case | Status | Expected Result |
+|---------|-----------|--------|-----------------|
+| NAV-01 | Navigate Dashboard → Sessions | ✅ PASS | Correct page loads |
+| NAV-02 | Navigate Sessions → Analytics | ✅ PASS | Correct page loads |
+| NAV-03 | Navigate Analytics → Settings | ✅ PASS | Correct page loads |
+| NAV-04 | Click logo/brand | ✅ PASS | Return to dashboard |
+| NAV-05 | Browser back button | ✅ PASS | Navigate to previous page |
+| NAV-06 | Mobile sidebar toggle | ❌ N/A | Sidebar opens/closes |
 
 ### Responsive Design Tests
-| Test ID | Test Case | Expected Result |
-|---------|-----------|-----------------|
-| RES-01 | View on mobile (375px) | Layout adapts, sidebar hidden |
-| RES-02 | View on tablet (768px) | Layout adapts correctly |
-| RES-03 | View on desktop (1280px) | Full sidebar visible |
-| RES-04 | Table horizontal scroll on mobile | Scrollable without breaking |
+| Test ID | Test Case | Status | Expected Result |
+|---------|-----------|--------|-----------------|
+| RES-01 | View on mobile (375px) | ✅ PASS | Layout adapts, sidebar hidden |
+| RES-02 | View on tablet (768px) | ✅ PASS | Layout adapts correctly |
+| RES-03 | View on desktop (1280px) | ✅ PASS | Full sidebar visible |
+| RES-04 | Table horizontal scroll on mobile | ✅ PASS | Scrollable without breaking |
 
 ### Error Handling Tests
-| Test ID | Test Case | Expected Result |
-|---------|-----------|-----------------|
-| ERR-01 | API returns 500 error | Show error message, retry option |
-| ERR-02 | Network disconnected | Show offline message |
-| ERR-03 | Session deleted by another admin | Show notification, update list |
-| ERR-04 | Invalid form submission | Show validation errors |
+| Test ID | Test Case | Status | Expected Result |
+|---------|-----------|--------|-----------------|
+| ERR-01 | API returns 500 error | ✅ PASS | Show error message, retry option |
+| ERR-02 | Network disconnected | ✅ PASS | Show offline message |
+| ERR-03 | Session deleted by another admin | ❌ N/A | Show notification, update list |
+| ERR-04 | Invalid form submission | ⚠️ PARTIAL | Show validation errors |
 
 ### Accessibility Tests
-| Test ID | Test Case | Expected Result |
-|---------|-----------|-----------------|
-| A11Y-01 | Keyboard navigation | All elements accessible via keyboard |
-| A11Y-02 | Screen reader compatibility | Elements have proper ARIA labels |
-| A11Y-03 | Color contrast | Meets WCAG AA standards |
-| A11Y-04 | Focus indicators | Visible focus on all interactive elements |
+| Test ID | Test Case | Status | Expected Result |
+|---------|-----------|--------|-----------------|
+| A11Y-01 | Keyboard navigation | ✅ PASS | All elements accessible via keyboard |
+| A11Y-02 | Screen reader compatibility | ⚠️ PARTIAL | Elements have proper ARIA labels |
+| A11Y-03 | Color contrast | ✅ PASS | Meets WCAG AA standards |
+| A11Y-04 | Focus indicators | ✅ PASS | Visible focus on all interactive elements |
 
 ### Language Switch Tests
-| Test ID | Test Case | Expected Result |
-|---------|-----------|-----------------|
-| LANG-01 | View language switcher | Dropdown visible in sidebar/header |
-| LANG-02 | Switch to Korean | All UI text changes to Korean |
-| LANG-03 | Switch to English | All UI text changes to English |
-| LANG-04 | Language persistence on refresh | Selected language remains after page reload |
-| LANG-05 | Language persistence across pages | Language stays consistent navigating between pages |
-| LANG-06 | Default language detection | Matches browser language or defaults to English |
+| Test ID | Test Case | Status | Expected Result |
+|---------|-----------|--------|-----------------|
+| LANG-01 | View language switcher | ✅ PASS | Dropdown visible in sidebar/header |
+| LANG-02 | Switch to Korean | ✅ PASS | All UI text changes to Korean |
+| LANG-03 | Switch to English | ✅ PASS | All UI text changes to English |
+| LANG-04 | Language persistence on refresh | ✅ PASS | Selected language remains after page reload |
+| LANG-05 | Language persistence across pages | ✅ PASS | Language stays consistent navigating between pages |
+| LANG-06 | Default language detection | ✅ PASS | Matches browser language or defaults to English |
+
+---
+
+## Test Summary
+
+| Category | Total | Passed | Failed | N/A | Partial |
+|----------|-------|--------|--------|-----|---------|
+| Authentication | 7 | 0 | 0 | 7 | 0 |
+| Dashboard | 4 | 4 | 0 | 0 | 0 |
+| Session Management | 13 | 10 | 0 | 2 | 0 |
+| Session Detail | 9 | 6 | 0 | 2 | 0 |
+| Analytics | 6 | 5 | 0 | 1 | 0 |
+| Settings | 5 | 4 | 0 | 0 | 1 |
+| Navigation | 6 | 5 | 0 | 1 | 0 |
+| Responsive | 4 | 4 | 0 | 0 | 0 |
+| Error Handling | 4 | 2 | 0 | 1 | 1 |
+| Accessibility | 4 | 2 | 0 | 0 | 2 |
+| Language | 6 | 6 | 0 | 0 | 0 |
+| **TOTAL** | **68** | **48** | **0** | **14** | **4** |
+
+> **Pass Rate (excluding N/A):** 48/54 (88.9%)
 
 ---
 

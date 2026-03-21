@@ -2,6 +2,7 @@
 
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { Toaster } from "@/components/ui/toaster";
 
 export default function AdminLayout({
   children,
@@ -29,6 +30,7 @@ export default function AdminLayout({
           </div>
         </main>
       </div>
+      <Toaster />
     </LanguageProvider>
   );
 }
