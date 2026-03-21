@@ -22,12 +22,17 @@ export async function GET() {
       (s) => new Date(s.created_at) >= twentyFourHoursAgo
     ).length || 0;
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       totalSessions: sessionsResult.count || 0,
       activeSessions,
       totalParticipants: participantsResult.count || 0,
       totalSlides: slidesResult.count || 0,
     });
+
+    // Cache for 30 seconds to reduce database load
+    response.headers.set("Cache-Control", "public, s-maxage=30, stale-while-revalidate=60");
+
+    return response;
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Server error" },

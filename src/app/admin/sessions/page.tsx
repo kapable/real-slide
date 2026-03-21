@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo, memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -135,16 +135,18 @@ export default function SessionsPage() {
     fetchSessions();
   }, [fetchSessions]);
 
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setSortField(field);
-      setSortOrder("desc");
-    }
-  };
+  const handleSort = useCallback((field: SortField) => {
+    setSortField((prevField) => {
+      if (prevField === field) {
+        setSortOrder((prevOrder) => (prevOrder === "asc" ? "desc" : "asc"));
+      } else {
+        setSortOrder("desc");
+      }
+      return field;
+    });
+  }, []);
 
-  const handleDelete = async (sessionId: string) => {
+  const handleDelete = useCallback(async (sessionId: string) => {
     if (!confirm(t.admin.sessions.deleteConfirm)) return;
 
     try {
@@ -163,9 +165,9 @@ export default function SessionsPage() {
         title: t.admin.errors.deleteFailed,
       });
     }
-  };
+  }, [t.admin.sessions.deleteConfirm, t.admin.success.deleted, t.admin.errors.deleteFailed, toast, fetchSessions]);
 
-  const handleCopyLink = async (shareCode: string, sessionId: string) => {
+  const handleCopyLink = useCallback(async (shareCode: string, sessionId: string) => {
     try {
       const url = `${window.location.origin}/join/${shareCode}`;
       await navigator.clipboard.writeText(url);
@@ -178,14 +180,14 @@ export default function SessionsPage() {
         title: t.admin.errors.unknownError,
       });
     }
-  };
+  }, [t.admin.success.copied, t.admin.errors.unknownError, toast]);
 
-  const handleEditSession = (session: Session) => {
+  const handleEditSession = useCallback((session: Session) => {
     setEditSession(session);
     setEditTitle(session.title);
-  };
+  }, []);
 
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = useCallback(async () => {
     if (!editSession || !editTitle.trim()) return;
 
     setIsSaving(true);
@@ -210,20 +212,25 @@ export default function SessionsPage() {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [editSession, editTitle, t.admin.success.saved, t.admin.errors.saveFailed, toast, fetchSessions]);
 
-  const formatDate = (dateString: string) => {
+  const formatDate = useCallback((dateString: string) => {
     return new Date(dateString).toLocaleDateString(undefined, {
       year: "numeric",
       month: "short",
       day: "numeric",
     });
-  };
+  }, []);
 
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ArrowUpDown className="h-4 w-4" />;
-    return sortOrder === "asc" ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
-  };
+  // Memoized sort icon component
+  const SortIcon = useMemo(
+    () =>
+      memo(function SortIcon({ field }: { field: SortField }) {
+        if (sortField !== field) return <ArrowUpDown className="h-4 w-4" />;
+        return sortOrder === "asc" ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
+      }),
+    [sortField, sortOrder]
+  );
 
   return (
     <div className="space-y-6">

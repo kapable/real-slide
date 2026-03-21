@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       sessionsOverTime,
       participantsOverTime,
       slideTypeDistribution,
@@ -134,6 +134,11 @@ export async function GET(request: NextRequest) {
         peakUsageHours,
       },
     });
+
+    // Cache for 60 seconds to reduce database load
+    response.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
+
+    return response;
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Server error" },

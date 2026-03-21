@@ -3,12 +3,9 @@
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { Toaster } from "@/components/ui/toaster";
+import { memo } from "react";
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function AdminLayoutComponent({ children }: { children: React.ReactNode }) {
   return (
     <LanguageProvider>
       <div className="flex h-screen bg-muted/20">
@@ -26,3 +23,5 @@ export default function AdminLayout({
     </LanguageProvider>
   );
 }
+
+export default memo(AdminLayoutComponent);
