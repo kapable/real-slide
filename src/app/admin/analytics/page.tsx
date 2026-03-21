@@ -352,15 +352,15 @@ export default function AnalyticsPage() {
                     {t.admin.analytics.noData}
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center">
-                    <ResponsiveContainer width="100%" height={250}>
+                  <div className="flex items-center justify-center py-4">
+                    <ResponsiveContainer width="100%" height={280}>
                       <PieChart>
                         <Pie
                           data={data?.slideTypeDistribution}
                           cx="50%"
                           cy="50%"
-                          innerRadius={60}
-                          outerRadius={100}
+                          innerRadius={50}
+                          outerRadius={80}
                           paddingAngle={2}
                           dataKey="count"
                           label={({ type, count }) => `${type}: ${count}`}

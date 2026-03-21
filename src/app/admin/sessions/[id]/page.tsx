@@ -336,7 +336,7 @@ export default function SessionDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 pl-12 lg:pl-0">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/admin/sessions">
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -344,7 +344,7 @@ export default function SessionDetailPage() {
           </Link>
         </Button>
       </div>
-      <div>
+      <div className="pl-12 lg:pl-0">
         <h1 className="text-2xl font-bold tracking-tight">{session.title}</h1>
         <p className="text-muted-foreground">{session.share_code}</p>
       </div>
