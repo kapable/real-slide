@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { WebVitals } from "@/components/WebVitals";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -55,6 +56,7 @@ export default function RootLayout({
       </head>
       <body className="bg-gray-50">
         <WebVitals />
+        <OfflineIndicator />
         {children}
       </body>
     </html>
