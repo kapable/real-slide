@@ -471,7 +471,7 @@ export default function PresenterPage() {
             </div>
 
             {/* Full-width Wordcloud (below the 2-column layout) */}
-            {currentSlide && (
+            {currentSlide && currentSlide.type === "slide" && (
               <div className="pb-6">
                 <WordcloudDisplay slideId={currentSlide.id} isPresenter={true} className="shadow-xl shadow-blue-500/5 border-none min-h-[450px]" />
               </div>
