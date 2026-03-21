@@ -96,7 +96,24 @@
       "comments": "댓글",
       "noWordcloud": "워드클라우드 제출 없음",
       "noComments": "댓글이 없습니다",
-      "notFound": "세션을 찾을 수 없습니다"
+      "notFound": "세션을 찾을 수 없습니다",
+      "voteResults": "투표 결과",
+      "quizResults": "퀴즈 결과",
+      "votes": "표",
+      "answers": "답변",
+      "noVotes": "아직 투표가 없습니다",
+      "noAnswers": "아직 답변이 없습니다",
+      "deleteSlide": "슬라이드 삭제",
+      "deleteSlideConfirm": "이 슬라이드를 삭제하시겠습니까? 연관된 모든 데이터(투표, 답변, 워드클라우드, 댓글)가 영구적으로 삭제됩니다.",
+      "sessionDeleted": "세션 삭제됨",
+      "sessionDeletedDesc": "이 세션이 다른 관리자에 의해 삭제되었습니다. 세션 목록으로 이동합니다."
+    },
+    "common": {
+      "cancel": "취소",
+      "delete": "삭제",
+      "save": "저장",
+      "edit": "수정",
+      "confirm": "확인"
     },
     "analytics": {
       "title": "분석",

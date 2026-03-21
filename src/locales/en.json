@@ -96,7 +96,24 @@
       "comments": "Comments",
       "noWordcloud": "No wordcloud submissions",
       "noComments": "No comments yet",
-      "notFound": "Session not found"
+      "notFound": "Session not found",
+      "voteResults": "Vote Results",
+      "quizResults": "Quiz Results",
+      "votes": "votes",
+      "answers": "answers",
+      "noVotes": "No votes submitted yet",
+      "noAnswers": "No answers submitted yet",
+      "deleteSlide": "Delete Slide",
+      "deleteSlideConfirm": "Are you sure you want to delete this slide? All associated data (votes, answers, wordcloud, comments) will be permanently removed.",
+      "sessionDeleted": "Session Deleted",
+      "sessionDeletedDesc": "This session has been deleted by another admin. You will be redirected to the sessions list."
+    },
+    "common": {
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "save": "Save",
+      "edit": "Edit",
+      "confirm": "Confirm"
     },
     "analytics": {
       "title": "Analytics",

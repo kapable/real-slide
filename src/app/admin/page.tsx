@@ -36,7 +36,7 @@ interface Activity {
   metadata?: Record<string, unknown>;
 }
 
-function formatTimeAgo(timestamp: string, t: typeof import("@/locales/en.json").default): string {
+function formatTimeAgo(timestamp: string, t: { admin: { dashboard: { timeAgo: { justNow: string; minutesAgo: string; hoursAgo: string; daysAgo: string } } } }): string {
   const now = new Date();
   const date = new Date(timestamp);
   const diffMs = now.getTime() - date.getTime();

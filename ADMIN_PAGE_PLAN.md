@@ -402,10 +402,10 @@ src/
 | DET-01 | View session info section | ✅ PASS | Display name, code, dates |
 | DET-02 | View slides list | ✅ PASS | All slides shown with correct order |
 | DET-03 | View participants list | ✅ PASS | All participants shown |
-| DET-04 | View vote/quiz results | ❌ N/A | Display results per slide |
+| DET-04 | View vote/quiz results | ✅ PASS | Display results per slide with expandable sections |
 | DET-05 | View wordcloud submissions | ✅ PASS | Show all submitted words |
 | DET-06 | View comments list | ✅ PASS | Display all comments |
-| DET-07 | Delete a slide from session | ❌ N/A | Slide removed |
+| DET-07 | Delete a slide from session | ✅ PASS | Slide removed with confirmation dialog |
 | DET-08 | Navigate back to session list | ✅ PASS | Return to list page |
 | DET-09 | Invalid session ID in URL | ✅ PASS | Show 404 or redirect to list |
 
@@ -451,7 +451,7 @@ src/
 |---------|-----------|--------|-----------------|
 | ERR-01 | API returns 500 error | ✅ PASS | Show toast error notification |
 | ERR-02 | Network disconnected | ✅ PASS | Show toast error notification |
-| ERR-03 | Session deleted by another admin | ❌ N/A | Show notification, update list |
+| ERR-03 | Session deleted by another admin | ✅ PASS | Show notification via realtime, redirect to list |
 | ERR-04 | Invalid form submission | ✅ PASS | Validation errors shown |
 
 ### Accessibility Tests
@@ -481,17 +481,17 @@ src/
 | Authentication | 7 | 0 | 0 | 7 | 0 |
 | Dashboard | 4 | 4 | 0 | 0 | 0 |
 | Session Management | 13 | 13 | 0 | 0 | 0 |
-| Session Detail | 9 | 7 | 0 | 2 | 0 |
+| Session Detail | 9 | 9 | 0 | 0 | 0 |
 | Analytics | 6 | 6 | 0 | 0 | 0 |
 | Settings | 5 | 5 | 0 | 0 | 0 |
 | Navigation | 6 | 6 | 0 | 0 | 0 |
 | Responsive | 4 | 4 | 0 | 0 | 0 |
-| Error Handling | 4 | 3 | 0 | 1 | 0 |
+| Error Handling | 4 | 4 | 0 | 0 | 0 |
 | Accessibility | 4 | 4 | 0 | 0 | 0 |
 | Language | 6 | 6 | 0 | 0 | 0 |
-| **TOTAL** | **68** | **58** | **0** | **10** | **0** |
+| **TOTAL** | **68** | **61** | **0** | **7** | **0** |
 
-> **Pass Rate (excluding N/A):** 58/58 (100%)
+> **Pass Rate (excluding N/A):** 61/61 (100%)
 
 ---
 
