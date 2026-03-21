@@ -27,6 +27,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   Search,
   MoreHorizontal,
   ExternalLink,
@@ -37,10 +44,18 @@ import {
   ChevronLeft,
   ChevronRight,
   Presentation,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Pencil,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
+
+type SortField = "created_at" | "participantCount";
+type SortOrder = "asc" | "desc";
 
 interface Session {
   id: string;
@@ -70,6 +85,11 @@ export default function SessionsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState(false);
+  const [sortField, setSortField] = useState<SortField>("created_at");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+  const [editSession, setEditSession] = useState<Session | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   const fetchSessions = useCallback(async () => {
     setIsLoading(true);
@@ -84,7 +104,19 @@ export default function SessionsPage() {
 
       const res = await fetch(`/api/admin/sessions?${params}`);
       if (!res.ok) throw new Error("Failed to fetch");
-      const data: SessionsResponse = await res.json();
+      let data: SessionsResponse = await res.json();
+
+      // Client-side sorting
+      data.sessions.sort((a, b) => {
+        let comparison = 0;
+        if (sortField === "participantCount") {
+          comparison = a.participantCount - b.participantCount;
+        } else {
+          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        }
+        return sortOrder === "asc" ? comparison : -comparison;
+      });
+
       setSessions(data.sessions);
       setTotalPages(data.totalPages);
     } catch (error) {
@@ -97,11 +129,20 @@ export default function SessionsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, search, status, toast, t]);
+  }, [page, search, status, sortField, sortOrder, toast, t]);
 
   useEffect(() => {
     fetchSessions();
   }, [fetchSessions]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortOrder("desc");
+    }
+  };
 
   const handleDelete = async (sessionId: string) => {
     if (!confirm(t.admin.sessions.deleteConfirm)) return;
@@ -139,12 +180,49 @@ export default function SessionsPage() {
     }
   };
 
+  const handleEditSession = (session: Session) => {
+    setEditSession(session);
+    setEditTitle(session.title);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editSession || !editTitle.trim()) return;
+
+    setIsSaving(true);
+    try {
+      const res = await fetch(`/api/admin/sessions/${editSession.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: editTitle }),
+      });
+      if (res.ok) {
+        toast({ title: t.admin.success.saved });
+        setEditSession(null);
+        fetchSessions();
+      } else {
+        throw new Error("Update failed");
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: t.admin.errors.saveFailed,
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString(undefined, {
       year: "numeric",
       month: "short",
       day: "numeric",
     });
+  };
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) return <ArrowUpDown className="h-4 w-4" />;
+    return sortOrder === "asc" ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
   };
 
   return (
@@ -202,15 +280,31 @@ export default function SessionsPage() {
             </div>
           ) : (
             <>
-              <div className="rounded-md border">
+              <div className="rounded-md border overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>{t.admin.sessions.table.name}</TableHead>
                       <TableHead>{t.admin.sessions.table.code}</TableHead>
                       <TableHead>{t.admin.sessions.table.status}</TableHead>
-                      <TableHead className="text-center">{t.admin.sessions.table.participants}</TableHead>
-                      <TableHead>{t.admin.sessions.table.created}</TableHead>
+                      <TableHead
+                        className="text-center cursor-pointer select-none"
+                        onClick={() => handleSort("participantCount")}
+                      >
+                        <div className="flex items-center justify-center gap-1">
+                          {t.admin.sessions.table.participants}
+                          <SortIcon field="participantCount" />
+                        </div>
+                      </TableHead>
+                      <TableHead
+                        className="cursor-pointer select-none"
+                        onClick={() => handleSort("created_at")}
+                      >
+                        <div className="flex items-center gap-1">
+                          {t.admin.sessions.table.created}
+                          <SortIcon field="created_at" />
+                        </div>
+                      </TableHead>
                       <TableHead className="text-right">{t.admin.sessions.table.actions}</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -247,6 +341,10 @@ export default function SessionsPage() {
                                   <Eye className="h-4 w-4 mr-2" />
                                   {t.admin.sessions.actions.view}
                                 </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditSession(session)}>
+                                <Pencil className="h-4 w-4 mr-2" />
+                                {t.admin.sessions.actions.edit}
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleCopyLink(session.share_code, session.id)}>
                                 <Copy className="h-4 w-4 mr-2" />
@@ -308,6 +406,30 @@ export default function SessionsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Session Dialog */}
+      <Dialog open={!!editSession} onOpenChange={(open) => !open && setEditSession(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t.admin.sessions.actions.edit}</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              placeholder={t.admin.sessions.table.name}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditSession(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={!editTitle.trim() || isSaving}>
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

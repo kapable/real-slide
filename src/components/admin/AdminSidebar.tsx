@@ -10,12 +10,17 @@ import {
   BarChart2,
   Settings,
   Shield,
+  Menu,
+  X,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { useState } from "react";
 
 export function AdminSidebar() {
   const pathname = usePathname();
   const { t } = useLanguage();
+  const [isOpen, setIsOpen] = useState(false);
 
   const navigation = [
     {
@@ -40,19 +45,8 @@ export function AdminSidebar() {
     },
   ];
 
-  return (
-    <aside className="flex flex-col h-full w-64 bg-background border-r">
-      {/* Logo */}
-      <div className="h-16 flex items-center justify-between px-4 border-b">
-        <Link href="/admin" className="flex items-center gap-2">
-          <div className="bg-primary p-1.5 rounded-lg text-primary-foreground">
-            <Shield className="h-4 w-4" />
-          </div>
-          <span className="font-bold text-lg tracking-tight">Admin</span>
-        </Link>
-        <LanguageSwitcher />
-      </div>
-
+  const NavContent = () => (
+    <>
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1">
         {navigation.map((item) => {
@@ -63,6 +57,7 @@ export function AdminSidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => setIsOpen(false)}
               className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all",
                 isActive
@@ -87,6 +82,63 @@ export function AdminSidebar() {
           {t.admin.sidebar.backToApp}
         </Link>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile Menu Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="lg:hidden fixed top-4 left-4 z-50 bg-background border shadow-sm"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+      </Button>
+
+      {/* Mobile Overlay */}
+      {isOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      {/* Mobile Sidebar */}
+      <aside
+        className={cn(
+          "lg:hidden fixed inset-y-0 left-0 z-50 flex flex-col w-64 bg-background border-r transition-transform duration-300",
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        {/* Logo */}
+        <div className="h-16 flex items-center justify-between px-4 border-b">
+          <Link href="/admin" className="flex items-center gap-2" onClick={() => setIsOpen(false)}>
+            <div className="bg-primary p-1.5 rounded-lg text-primary-foreground">
+              <Shield className="h-4 w-4" />
+            </div>
+            <span className="font-bold text-lg tracking-tight">Admin</span>
+          </Link>
+          <LanguageSwitcher />
+        </div>
+        <NavContent />
+      </aside>
+
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex flex-col h-full w-64 bg-background border-r">
+        {/* Logo */}
+        <div className="h-16 flex items-center justify-between px-4 border-b">
+          <Link href="/admin" className="flex items-center gap-2">
+            <div className="bg-primary p-1.5 rounded-lg text-primary-foreground">
+              <Shield className="h-4 w-4" />
+            </div>
+            <span className="font-bold text-lg tracking-tight">Admin</span>
+          </Link>
+          <LanguageSwitcher />
+        </div>
+        <NavContent />
+      </aside>
+    </>
   );
 }

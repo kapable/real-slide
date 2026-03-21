@@ -7,13 +7,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Save, RotateCcw, Check, Settings } from "lucide-react";
+import { Save, RotateCcw, Check, AlertCircle } from "lucide-react";
 
 interface Settings {
   maxParticipants: number;
   enableWordcloud: boolean;
   enableComments: boolean;
   enableHandsUp: boolean;
+}
+
+interface ValidationErrors {
+  maxParticipants?: string;
 }
 
 const defaultSettings: Settings = {
@@ -35,8 +39,26 @@ export default function SettingsPage() {
     return defaultSettings;
   });
   const [saved, setSaved] = useState(false);
+  const [errors, setErrors] = useState<ValidationErrors>({});
+
+  const validateSettings = (): boolean => {
+    const newErrors: ValidationErrors = {};
+
+    if (settings.maxParticipants < 1) {
+      newErrors.maxParticipants = "Minimum value is 1";
+    } else if (settings.maxParticipants > 1000) {
+      newErrors.maxParticipants = "Maximum value is 1000";
+    } else if (!Number.isInteger(settings.maxParticipants)) {
+      newErrors.maxParticipants = "Must be a whole number";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSave = () => {
+    if (!validateSettings()) return;
+
     localStorage.setItem("admin-settings", JSON.stringify(settings));
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -44,11 +66,26 @@ export default function SettingsPage() {
 
   const handleReset = () => {
     setSettings(defaultSettings);
+    setErrors({});
     localStorage.removeItem("admin-settings");
   };
 
   const updateSetting = <K extends keyof Settings>(key: K, value: Settings[K]) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
+    // Clear error when user starts typing
+    if (key === "maxParticipants") {
+      setErrors((prev) => ({ ...prev, maxParticipants: undefined }));
+    }
+  };
+
+  const handleMaxParticipantsBlur = () => {
+    if (settings.maxParticipants < 1) {
+      setErrors((prev) => ({ ...prev, maxParticipants: "Minimum value is 1" }));
+      setSettings((prev) => ({ ...prev, maxParticipants: 1 }));
+    } else if (settings.maxParticipants > 1000) {
+      setErrors((prev) => ({ ...prev, maxParticipants: "Maximum value is 1000" }));
+      setSettings((prev) => ({ ...prev, maxParticipants: 1000 }));
+    }
   };
 
   return (
@@ -70,18 +107,32 @@ export default function SettingsPage() {
             <div className="space-y-0.5">
               <Label htmlFor="maxParticipants">{t.admin.settings.maxParticipants}</Label>
               <p className="text-xs text-muted-foreground">
-                Maximum number of participants allowed per session
+                Maximum number of participants allowed per session (1-1000)
               </p>
             </div>
-            <Input
-              id="maxParticipants"
-              type="number"
-              min={1}
-              max={1000}
-              value={settings.maxParticipants}
-              onChange={(e) => updateSetting("maxParticipants", parseInt(e.target.value) || 100)}
-              className="w-24"
-            />
+            <div className="flex flex-col items-end gap-1">
+              <div className="relative">
+                <Input
+                  id="maxParticipants"
+                  type="number"
+                  min={1}
+                  max={1000}
+                  value={settings.maxParticipants}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    updateSetting("maxParticipants", isNaN(value) ? 0 : value);
+                  }}
+                  onBlur={handleMaxParticipantsBlur}
+                  className={`w-24 ${errors.maxParticipants ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                />
+              </div>
+              {errors.maxParticipants && (
+                <p className="text-xs text-destructive flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {errors.maxParticipants}
+                </p>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -142,7 +193,7 @@ export default function SettingsPage() {
 
       {/* Actions */}
       <div className="flex gap-3">
-        <Button onClick={handleSave} className="gap-2">
+        <Button onClick={handleSave} className="gap-2" disabled={Object.keys(errors).length > 0}>
           {saved ? (
             <>
               <Check className="h-4 w-4" />

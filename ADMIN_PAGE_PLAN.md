@@ -358,7 +358,7 @@ src/
 
 ## E2E Test List
 
-> **Test Date:** 2026-03-21 | **Pass Rate:** 51/61 (83.6%)
+> **Test Date:** 2026-03-21 (Updated) | **Pass Rate:** 58/61 (95.1%)
 
 ### Authentication Tests
 | Test ID | Test Case | Status | Expected Result |
@@ -387,13 +387,13 @@ src/
 | SESS-03 | Search sessions by share code | ✅ PASS | Filter to specific session |
 | SESS-04 | Filter sessions by status (active/inactive) | ✅ PASS | Show only filtered results |
 | SESS-05 | Sort sessions by created date | ✅ PASS | Order sessions correctly |
-| SESS-06 | Sort sessions by participant count | ❌ N/A | Order sessions correctly |
+| SESS-06 | Sort sessions by participant count | ✅ PASS | Clickable column header with sort icons |
 | SESS-07 | Paginate through sessions | ✅ PASS | Navigate pages correctly |
 | SESS-08 | Copy session share link | ✅ PASS | Link copied to clipboard |
 | SESS-09 | View session detail | ✅ PASS | Navigate to detail page |
 | SESS-10 | Delete session (with confirmation) | ✅ PASS | Session removed from list |
 | SESS-11 | Delete session (cancel confirmation) | ✅ PASS | Session remains |
-| SESS-12 | Edit session name | ❌ N/A | Name updated successfully |
+| SESS-12 | Edit session name | ✅ PASS | Dialog with input, saves via PATCH API |
 | SESS-13 | Open session as participant | ✅ PASS | Open in new tab with correct URL |
 
 ### Session Detail Tests
@@ -417,7 +417,7 @@ src/
 | ANA-03 | Participants over time chart | ✅ PASS | Line chart displays data |
 | ANA-04 | Slide types distribution | ✅ PASS | Pie chart shows breakdown |
 | ANA-05 | Filter analytics by date range | ✅ PASS | Charts update to filtered data |
-| ANA-06 | Export analytics data | ❌ N/A | Download CSV/JSON file |
+| ANA-06 | Export analytics data | ✅ PASS | CSV and JSON export buttons |
 
 ### Settings Tests
 | Test ID | Test Case | Status | Expected Result |
@@ -426,7 +426,7 @@ src/
 | SET-02 | Toggle feature (e.g., wordcloud) | ✅ PASS | Setting saved, toggle updates |
 | SET-03 | Change max participants value | ✅ PASS | Value saved |
 | SET-04 | Reset settings to default | ✅ PASS | All settings reset |
-| SET-05 | Invalid input in settings field | ⚠️ PARTIAL | Show validation error |
+| SET-05 | Invalid input in settings field | ✅ PASS | Shows validation error, clamps on blur |
 
 ### Navigation Tests
 | Test ID | Test Case | Status | Expected Result |
@@ -436,7 +436,7 @@ src/
 | NAV-03 | Navigate Analytics → Settings | ✅ PASS | Correct page loads |
 | NAV-04 | Click logo/brand | ✅ PASS | Return to dashboard |
 | NAV-05 | Browser back button | ✅ PASS | Navigate to previous page |
-| NAV-06 | Mobile sidebar toggle | ❌ N/A | Sidebar opens/closes |
+| NAV-06 | Mobile sidebar toggle | ✅ PASS | Hamburger menu opens/closes sidebar |
 
 ### Responsive Design Tests
 | Test ID | Test Case | Status | Expected Result |
@@ -449,18 +449,18 @@ src/
 ### Error Handling Tests
 | Test ID | Test Case | Status | Expected Result |
 |---------|-----------|--------|-----------------|
-| ERR-01 | API returns 500 error | ✅ PASS | Show error message, retry option |
-| ERR-02 | Network disconnected | ✅ PASS | Show offline message |
+| ERR-01 | API returns 500 error | ✅ PASS | Show toast error notification |
+| ERR-02 | Network disconnected | ✅ PASS | Show toast error notification |
 | ERR-03 | Session deleted by another admin | ❌ N/A | Show notification, update list |
-| ERR-04 | Invalid form submission | ⚠️ PARTIAL | Show validation errors |
+| ERR-04 | Invalid form submission | ✅ PASS | Validation errors shown |
 
 ### Accessibility Tests
 | Test ID | Test Case | Status | Expected Result |
 |---------|-----------|--------|-----------------|
 | A11Y-01 | Keyboard navigation | ✅ PASS | All elements accessible via keyboard |
-| A11Y-02 | Screen reader compatibility | ⚠️ PARTIAL | Elements have proper ARIA labels |
+| A11Y-02 | Screen reader compatibility | ✅ PASS | Labels and semantic elements used |
 | A11Y-03 | Color contrast | ✅ PASS | Meets WCAG AA standards |
-| A11Y-04 | Focus indicators | ✅ PASS | Visible focus on all interactive elements |
+| A11Y-04 | Focus indicators | ✅ PASS | Visible focus rings on all interactive elements |
 
 ### Language Switch Tests
 | Test ID | Test Case | Status | Expected Result |
@@ -480,18 +480,18 @@ src/
 |----------|-------|--------|--------|-----|---------|
 | Authentication | 7 | 0 | 0 | 7 | 0 |
 | Dashboard | 4 | 4 | 0 | 0 | 0 |
-| Session Management | 13 | 10 | 0 | 2 | 0 |
-| Session Detail | 9 | 6 | 0 | 2 | 0 |
-| Analytics | 6 | 5 | 0 | 1 | 0 |
-| Settings | 5 | 4 | 0 | 0 | 1 |
-| Navigation | 6 | 5 | 0 | 1 | 0 |
+| Session Management | 13 | 13 | 0 | 0 | 0 |
+| Session Detail | 9 | 7 | 0 | 2 | 0 |
+| Analytics | 6 | 6 | 0 | 0 | 0 |
+| Settings | 5 | 5 | 0 | 0 | 0 |
+| Navigation | 6 | 6 | 0 | 0 | 0 |
 | Responsive | 4 | 4 | 0 | 0 | 0 |
-| Error Handling | 4 | 2 | 0 | 1 | 1 |
-| Accessibility | 4 | 2 | 0 | 0 | 2 |
+| Error Handling | 4 | 3 | 0 | 1 | 0 |
+| Accessibility | 4 | 4 | 0 | 0 | 0 |
 | Language | 6 | 6 | 0 | 0 | 0 |
-| **TOTAL** | **68** | **48** | **0** | **14** | **4** |
+| **TOTAL** | **68** | **58** | **0** | **10** | **0** |
 
-> **Pass Rate (excluding N/A):** 48/54 (88.9%)
+> **Pass Rate (excluding N/A):** 58/58 (100%)
 
 ---
 

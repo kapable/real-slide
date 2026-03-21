@@ -26,7 +26,7 @@ import {
   Bar,
 } from "recharts";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Users, Presentation, TrendingUp, Clock, Loader2 } from "lucide-react";
+import { Users, Presentation, TrendingUp, Clock, Loader2, Download } from "lucide-react";
 
 interface AnalyticsData {
   sessionsOverTime: { date: string; count: number }[];
@@ -76,6 +76,103 @@ export default function AnalyticsPage() {
     return `${hour}:00`;
   };
 
+  const handleExportCSV = () => {
+    if (!data) return;
+
+    const csvRows: string[] = [];
+
+    // Header
+    csvRows.push("Real-Slide Analytics Report");
+    csvRows.push(`Generated: ${new Date().toISOString()}`);
+    csvRows.push(`Period: Last ${days} days`);
+    csvRows.push("");
+
+    // Summary
+    csvRows.push("SUMMARY");
+    csvRows.push("Metric,Value");
+    csvRows.push(`Total Sessions,${data.engagement.totalSessions}`);
+    csvRows.push(`Total Participants,${data.engagement.totalParticipants}`);
+    csvRows.push(`Avg Participants/Session,${data.engagement.avgParticipantsPerSession}`);
+    csvRows.push("");
+
+    // Sessions over time
+    csvRows.push("SESSIONS OVER TIME");
+    csvRows.push("Date,Count");
+    data.sessionsOverTime.forEach((item) => {
+      csvRows.push(`${item.date},${item.count}`);
+    });
+    csvRows.push("");
+
+    // Participants over time
+    csvRows.push("PARTICIPANTS OVER TIME");
+    csvRows.push("Date,Count");
+    data.participantsOverTime.forEach((item) => {
+      csvRows.push(`${item.date},${item.count}`);
+    });
+    csvRows.push("");
+
+    // Slide types
+    csvRows.push("SLIDE TYPES DISTRIBUTION");
+    csvRows.push("Type,Count");
+    data.slideTypeDistribution.forEach((item) => {
+      csvRows.push(`${item.type},${item.count}`);
+    });
+    csvRows.push("");
+
+    // Most active sessions
+    csvRows.push("MOST ACTIVE SESSIONS");
+    csvRows.push("Title,Participants");
+    data.engagement.mostActiveSessions.forEach((item) => {
+      csvRows.push(`"${item.title}",${item.participantCount}`);
+    });
+    csvRows.push("");
+
+    // Peak usage hours
+    csvRows.push("PEAK USAGE HOURS");
+    csvRows.push("Hour,Count");
+    data.engagement.peakUsageHours.forEach((item) => {
+      csvRows.push(`${item.hour}:00,${item.count}`);
+    });
+
+    // Download
+    const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `analytics-${days}days-${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportJSON = () => {
+    if (!data) return;
+
+    const exportData = {
+      generated: new Date().toISOString(),
+      period: `Last ${days} days`,
+      summary: {
+        totalSessions: data.engagement.totalSessions,
+        totalParticipants: data.engagement.totalParticipants,
+        avgParticipantsPerSession: data.engagement.avgParticipantsPerSession,
+      },
+      sessionsOverTime: data.sessionsOverTime,
+      participantsOverTime: data.participantsOverTime,
+      slideTypeDistribution: data.slideTypeDistribution,
+      mostActiveSessions: data.engagement.mostActiveSessions,
+      peakUsageHours: data.engagement.peakUsageHours,
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `analytics-${days}days-${new Date().toISOString().split("T")[0]}.json`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -84,16 +181,28 @@ export default function AnalyticsPage() {
           <h1 className="text-2xl font-bold tracking-tight">{t.admin.analytics.title}</h1>
           <p className="text-muted-foreground">{t.admin.analytics.description}</p>
         </div>
-        <Select value={days} onValueChange={setDays}>
-          <SelectTrigger className="w-[150px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="7">{t.admin.analytics.days["7"]}</SelectItem>
-            <SelectItem value="30">{t.admin.analytics.days["30"]}</SelectItem>
-            <SelectItem value="90">{t.admin.analytics.days["90"]}</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Select value={days} onValueChange={setDays}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7">{t.admin.analytics.days["7"]}</SelectItem>
+              <SelectItem value="30">{t.admin.analytics.days["30"]}</SelectItem>
+              <SelectItem value="90">{t.admin.analytics.days["90"]}</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="flex gap-1">
+            <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={!data}>
+              <Download className="h-4 w-4 mr-1" />
+              CSV
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportJSON} disabled={!data}>
+              <Download className="h-4 w-4 mr-1" />
+              JSON
+            </Button>
+          </div>
+        </div>
       </div>
 
       {isLoading ? (
