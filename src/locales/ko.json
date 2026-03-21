@@ -1,0 +1,144 @@
+{
+  "admin": {
+    "sidebar": {
+      "dashboard": "대시보드",
+      "sessions": "세션 관리",
+      "analytics": "분석",
+      "settings": "설정",
+      "backToApp": "앱으로 돌아가기"
+    },
+    "dashboard": {
+      "title": "대시보드",
+      "description": "Real-Slide 애플리케이션 개요",
+      "stats": {
+        "totalSessions": "전체 세션",
+        "activeSessions": "활성 세션",
+        "totalParticipants": "전체 참여자",
+        "totalSlides": "전체 슬라이드"
+      },
+      "allTime": "전체 기간",
+      "last24Hours": "최근 24시간",
+      "recentActivity": "최근 활동",
+      "noActivity": "표시할 최근 활동이 없습니다",
+      "quickActions": "빠른 작업",
+      "createSession": "세션 만들기",
+      "viewActiveSessions": "활성 세션 보기",
+      "activity": {
+        "session_created": "세션 생성됨",
+        "participant_joined": "세션에 참여함",
+        "vote_submitted": "새 투표 제출됨",
+        "quiz_answered": "퀴즈 답변 제출됨",
+        "correct": "정답",
+        "incorrect": "오답"
+      },
+      "timeAgo": {
+        "justNow": "방금 전",
+        "minutesAgo": "분 전",
+        "hoursAgo": "시간 전",
+        "daysAgo": "일 전"
+      }
+    },
+    "sessions": {
+      "title": "세션 관리",
+      "description": "모든 프레젠테이션 세션 관리",
+      "sessionList": "세션 목록",
+      "noSessions": "세션이 없습니다",
+      "search": "세션 검색...",
+      "filter": {
+        "all": "전체",
+        "active": "활성",
+        "inactive": "비활성"
+      },
+      "table": {
+        "name": "이름",
+        "code": "코드",
+        "status": "상태",
+        "participants": "참여자",
+        "created": "생성일",
+        "actions": "작업"
+      },
+      "actions": {
+        "view": "보기",
+        "edit": "수정",
+        "delete": "삭제",
+        "copyLink": "링크 복사",
+        "openParticipant": "참여자로 열기"
+      },
+      "status": {
+        "active": "활성",
+        "inactive": "비활성"
+      },
+      "deleteConfirm": "이 세션을 삭제하시겠습니까?",
+      "linkCopied": "링크가 복사되었습니다!",
+      "prev": "이전",
+      "next": "다음",
+      "page": "페이지",
+      "of": "/"
+    },
+    "sessionDetail": {
+      "backToSessions": "세션 목록으로",
+      "sessionInfo": "세션 정보",
+      "presenterLink": "발표자 링크",
+      "shareCode": "공유 코드",
+      "createdAt": "생성일",
+      "slides": "슬라이드",
+      "noSlides": "슬라이드가 없습니다",
+      "slideTypes": {
+        "slide": "슬라이드",
+        "vote": "투표",
+        "quiz": "퀴즈"
+      },
+      "participants": "참여자",
+      "noParticipants": "참여자가 없습니다",
+      "joinedAt": "참여 시간",
+      "interactions": "인터랙션",
+      "wordcloud": "워드클라우드",
+      "comments": "댓글",
+      "noWordcloud": "워드클라우드 제출 없음",
+      "noComments": "댓글이 없습니다",
+      "notFound": "세션을 찾을 수 없습니다"
+    },
+    "analytics": {
+      "title": "분석",
+      "description": "사용 통계 및 인사이트",
+      "sessionsOverTime": "시간별 세션",
+      "participantsOverTime": "시간별 참여자",
+      "slideTypesDistribution": "슬라이드 유형 분포",
+      "engagementMetrics": "참여 지표",
+      "totalSessions": "전체 세션",
+      "totalParticipants": "전체 참여자",
+      "avgParticipants": "평균 참여자/세션",
+      "mostActiveSessions": "가장 활성화된 세션",
+      "peakUsageHours": "최대 사용 시간대",
+      "noData": "데이터가 없습니다",
+      "participants": "참여자",
+      "lastDays": "최근 {days}일",
+      "days": {
+        "7": "7일",
+        "30": "30일",
+        "90": "90일"
+      }
+    },
+    "settings": {
+      "title": "설정",
+      "description": "애플리케이션 설정",
+      "generalSettings": "일반 설정",
+      "featureToggles": "기능 설정",
+      "defaultSession": "기본 세션 설정",
+      "maxParticipants": "세션당 최대 참여자",
+      "enableWordcloud": "워드클라우드 활성화",
+      "enableWordcloudDesc": "참여자가 워드클라우드 슬라이드에 단어를 제출할 수 있습니다",
+      "enableComments": "댓글 활성화",
+      "enableCommentsDesc": "참여자가 슬라이드에 댓글을 남길 수 있습니다",
+      "enableHandsUp": "손들기 활성화",
+      "enableHandsUpDesc": "참여자가 질문을 위해 손을 들 수 있습니다",
+      "saved": "설정이 저장되었습니다!",
+      "save": "설정 저장",
+      "reset": "기본값으로 초기화"
+    },
+    "language": {
+      "en": "English",
+      "ko": "한국어"
+    }
+  }
+}

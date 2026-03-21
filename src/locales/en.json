@@ -1,0 +1,144 @@
+{
+  "admin": {
+    "sidebar": {
+      "dashboard": "Dashboard",
+      "sessions": "Sessions",
+      "analytics": "Analytics",
+      "settings": "Settings",
+      "backToApp": "Back to App"
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "description": "Overview of your Real-Slide application",
+      "stats": {
+        "totalSessions": "Total Sessions",
+        "activeSessions": "Active Sessions",
+        "totalParticipants": "Total Participants",
+        "totalSlides": "Total Slides"
+      },
+      "allTime": "All time",
+      "last24Hours": "Last 24 hours",
+      "recentActivity": "Recent Activity",
+      "noActivity": "No recent activity to display",
+      "quickActions": "Quick Actions",
+      "createSession": "Create Session",
+      "viewActiveSessions": "View Active Sessions",
+      "activity": {
+        "session_created": "Session created",
+        "participant_joined": "joined a session",
+        "vote_submitted": "New vote submitted",
+        "quiz_answered": "Quiz answer submitted",
+        "correct": "correct",
+        "incorrect": "incorrect"
+      },
+      "timeAgo": {
+        "justNow": "Just now",
+        "minutesAgo": "minutes ago",
+        "hoursAgo": "hours ago",
+        "daysAgo": "days ago"
+      }
+    },
+    "sessions": {
+      "title": "Sessions",
+      "description": "Manage all presentation sessions",
+      "sessionList": "Session List",
+      "noSessions": "No sessions found",
+      "search": "Search sessions...",
+      "filter": {
+        "all": "All",
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "table": {
+        "name": "Name",
+        "code": "Code",
+        "status": "Status",
+        "participants": "Participants",
+        "created": "Created",
+        "actions": "Actions"
+      },
+      "actions": {
+        "view": "View",
+        "edit": "Edit",
+        "delete": "Delete",
+        "copyLink": "Copy Link",
+        "openParticipant": "Open as Participant"
+      },
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "deleteConfirm": "Are you sure you want to delete this session?",
+      "linkCopied": "Link copied!",
+      "prev": "Previous",
+      "next": "Next",
+      "page": "Page",
+      "of": "of"
+    },
+    "sessionDetail": {
+      "backToSessions": "Back to Sessions",
+      "sessionInfo": "Session Info",
+      "presenterLink": "Presenter Link",
+      "shareCode": "Share Code",
+      "createdAt": "Created At",
+      "slides": "Slides",
+      "noSlides": "No slides in this session",
+      "slideTypes": {
+        "slide": "Slide",
+        "vote": "Vote",
+        "quiz": "Quiz"
+      },
+      "participants": "Participants",
+      "noParticipants": "No participants yet",
+      "joinedAt": "Joined",
+      "interactions": "Interactions",
+      "wordcloud": "Wordcloud",
+      "comments": "Comments",
+      "noWordcloud": "No wordcloud submissions",
+      "noComments": "No comments yet",
+      "notFound": "Session not found"
+    },
+    "analytics": {
+      "title": "Analytics",
+      "description": "Usage statistics and insights",
+      "sessionsOverTime": "Sessions Over Time",
+      "participantsOverTime": "Participants Over Time",
+      "slideTypesDistribution": "Slide Types Distribution",
+      "engagementMetrics": "Engagement Metrics",
+      "totalSessions": "Total Sessions",
+      "totalParticipants": "Total Participants",
+      "avgParticipants": "Avg Participants/Session",
+      "mostActiveSessions": "Most Active Sessions",
+      "peakUsageHours": "Peak Usage Hours",
+      "noData": "No data available",
+      "participants": "participants",
+      "lastDays": "Last {days} days",
+      "days": {
+        "7": "7 Days",
+        "30": "30 Days",
+        "90": "90 Days"
+      }
+    },
+    "settings": {
+      "title": "Settings",
+      "description": "Configure application settings",
+      "generalSettings": "General Settings",
+      "featureToggles": "Feature Toggles",
+      "defaultSession": "Default Session Configuration",
+      "maxParticipants": "Max Participants per Session",
+      "enableWordcloud": "Enable Wordcloud",
+      "enableWordcloudDesc": "Allow participants to submit words for wordcloud slides",
+      "enableComments": "Enable Comments",
+      "enableCommentsDesc": "Allow participants to leave comments on slides",
+      "enableHandsUp": "Enable Hands Up",
+      "enableHandsUpDesc": "Allow participants to raise their hand for questions",
+      "saved": "Settings saved!",
+      "save": "Save Settings",
+      "reset": "Reset to Default"
+    },
+    "language": {
+      "en": "English",
+      "ko": "한국어"
+    }
+  }
+}

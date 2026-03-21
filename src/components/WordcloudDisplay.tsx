@@ -174,8 +174,8 @@ export default function WordcloudDisplay({
 
   return (
     <div className={cn(
-      "overflow-hidden relative flex flex-col",
-      compact ? "p-0" : "bg-background border rounded-2xl p-4 sm:p-8",
+      "relative flex flex-col",
+      compact ? "p-0 overflow-hidden" : "bg-background border rounded-2xl p-4 sm:p-8 overflow-visible",
       className
     )}>
       {/* Pop-up animation styles */}
@@ -215,7 +215,7 @@ export default function WordcloudDisplay({
       ) : (
         <div className={cn(
           "flex flex-wrap justify-center items-center flex-1 relative z-10 content-center",
-          compact ? "gap-x-10 gap-y-5 p-2" : "gap-x-8 gap-y-4 py-4 max-w-5xl mx-auto overflow-y-auto"
+          compact ? "gap-x-10 gap-y-5 p-2" : "gap-x-8 gap-y-4 py-4 max-w-5xl mx-auto"
         )}>
           {items.map((item, idx) => (
             <div
@@ -238,7 +238,7 @@ export default function WordcloudDisplay({
                     e.stopPropagation();
                     handleDeleteWord(item.id);
                   }}
-                  className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center shadow-lg z-30"
+                  className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center shadow-lg z-30"
                   style={{ fontSize: "10px", writingMode: "horizontal-tb" }}
                 >
                   <X className="h-3 w-3" />

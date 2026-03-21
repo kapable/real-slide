@@ -206,7 +206,7 @@ function ParticipantView() {
         </Button>
       </header>
 
-      <main className="flex-1 flex flex-col lg:flex-row gap-6 p-6 max-w-[1600px] mx-auto w-full">
+      <main className="flex-1 flex flex-col lg:flex-row gap-6 p-6 pb-48 max-w-[1600px] mx-auto w-full">
         {/* Left: Main Content (Slide + Interaction) */}
         <div className="flex-1 flex flex-col gap-6 min-w-0">
           {error && (
