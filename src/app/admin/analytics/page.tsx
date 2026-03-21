@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -11,22 +12,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
-  Bar,
-} from "recharts";
+import { LineChartComponent } from "@/components/charts/LineChartComponent";
+import { PieChartComponent } from "@/components/charts/PieChartComponent";
+import { BarChartComponent } from "@/components/charts/BarChartComponent";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Users, Presentation, TrendingUp, Clock, Loader2, Download } from "lucide-react";
+import { Users, Presentation, TrendingUp, Clock, Download } from "lucide-react";
 
 interface AnalyticsData {
   sessionsOverTime: { date: string; count: number }[];
@@ -40,8 +30,6 @@ interface AnalyticsData {
     peakUsageHours: { hour: number; count: number }[];
   };
 }
-
-const COLORS = ["#3b82f6", "#8b5cf6", "#f59e0b"];
 
 export default function AnalyticsPage() {
   const { t } = useLanguage();
@@ -206,9 +194,36 @@ export default function AnalyticsPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-24">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
+        <>
+          {/* Engagement Metrics Skeleton */}
+          <div className="grid gap-4 md:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <Card key={i}>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-4" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-8 w-16" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Charts Skeleton */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            {[1, 2].map((i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <Skeleton className="h-6 w-40" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-[250px] w-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
       ) : (
         <>
           {/* Engagement Metrics */}
@@ -267,32 +282,11 @@ export default function AnalyticsPage() {
                     {t.admin.analytics.noData}
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height={250}>
-                    <LineChart data={data?.sessionsOverTime}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                      <XAxis
-                        dataKey="date"
-                        tickFormatter={formatDate}
-                        className="text-xs"
-                      />
-                      <YAxis className="text-xs" />
-                      <Tooltip
-                        labelFormatter={formatDate}
-                        contentStyle={{
-                          backgroundColor: "hsl(var(--background))",
-                          border: "1px solid hsl(var(--border))",
-                          borderRadius: "8px",
-                        }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="count"
-                        stroke="hsl(var(--primary))"
-                        strokeWidth={2}
-                        dot={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <LineChartComponent
+                    data={data?.sessionsOverTime ?? []}
+                    color="hsl(var(--primary))"
+                    formatDate={formatDate}
+                  />
                 )}
               </CardContent>
             </Card>
@@ -308,32 +302,11 @@ export default function AnalyticsPage() {
                     {t.admin.analytics.noData}
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height={250}>
-                    <LineChart data={data?.participantsOverTime}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                      <XAxis
-                        dataKey="date"
-                        tickFormatter={formatDate}
-                        className="text-xs"
-                      />
-                      <YAxis className="text-xs" />
-                      <Tooltip
-                        labelFormatter={formatDate}
-                        contentStyle={{
-                          backgroundColor: "hsl(var(--background))",
-                          border: "1px solid hsl(var(--border))",
-                          borderRadius: "8px",
-                        }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="count"
-                        stroke="#8b5cf6"
-                        strokeWidth={2}
-                        dot={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <LineChartComponent
+                    data={data?.participantsOverTime ?? []}
+                    color="#8b5cf6"
+                    formatDate={formatDate}
+                  />
                 )}
               </CardContent>
             </Card>
@@ -353,31 +326,7 @@ export default function AnalyticsPage() {
                   </div>
                 ) : (
                   <div className="flex items-center justify-center py-4">
-                    <ResponsiveContainer width="100%" height={280}>
-                      <PieChart>
-                        <Pie
-                          data={data?.slideTypeDistribution}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={50}
-                          outerRadius={80}
-                          paddingAngle={2}
-                          dataKey="count"
-                          label={({ type, count }) => `${type}: ${count}`}
-                        >
-                          {data?.slideTypeDistribution.map((_, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "hsl(var(--background))",
-                            border: "1px solid hsl(var(--border))",
-                            borderRadius: "8px",
-                          }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
+                    <PieChartComponent data={data?.slideTypeDistribution ?? []} />
                   </div>
                 )}
               </CardContent>
@@ -397,26 +346,10 @@ export default function AnalyticsPage() {
                     {t.admin.analytics.noData}
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height={250}>
-                    <BarChart data={data?.engagement.peakUsageHours}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                      <XAxis
-                        dataKey="hour"
-                        tickFormatter={formatHour}
-                        className="text-xs"
-                      />
-                      <YAxis className="text-xs" />
-                      <Tooltip
-                        labelFormatter={formatHour}
-                        contentStyle={{
-                          backgroundColor: "hsl(var(--background))",
-                          border: "1px solid hsl(var(--border))",
-                          borderRadius: "8px",
-                        }}
-                      />
-                      <Bar dataKey="count" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <BarChartComponent
+                    data={data?.engagement.peakUsageHours ?? []}
+                    formatHour={formatHour}
+                  />
                 )}
               </CardContent>
             </Card>
