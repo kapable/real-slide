@@ -59,7 +59,7 @@ This document outlines a comprehensive strategy for testing and optimizing the p
 - [x] Use `next/dynamic` with `ssr: false` for client-only components
 - [x] Review and optimize recharts imports (import specific charts only)
 - [x] Lazy load admin panel components
-- [ ] Consider replacing heavy libraries with lighter alternatives
+- [x] Consider replacing heavy libraries with lighter alternatives
 
 #### CSS
 - [ ] Audit Tailwind CSS purging configuration
