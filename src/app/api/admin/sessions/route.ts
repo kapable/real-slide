@@ -19,20 +19,18 @@ export async function GET(request: NextRequest) {
     // Build query
     let query = supabase
       .from("sessions")
-      .select("id, title, share_code, created_at", { count: "exact" });
+      .select("id, title, share_code, created_at, is_active", { count: "exact" });
 
     // Apply search filter
     if (search) {
       query = query.or(`title.ilike.%${search}%,share_code.ilike.%${search}%`);
     }
 
-    // Apply status filter (active = created in last 24 hours)
+    // Apply status filter based on is_active column
     if (status === "active") {
-      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      query = query.gte("created_at", twentyFourHoursAgo);
+      query = query.eq("is_active", true);
     } else if (status === "inactive") {
-      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      query = query.lt("created_at", twentyFourHoursAgo);
+      query = query.eq("is_active", false);
     }
 
     // Apply pagination and ordering
@@ -52,13 +50,10 @@ export async function GET(request: NextRequest) {
           .select("id", { count: "exact", head: true })
           .eq("session_id", session.id);
 
-        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        const isActive = new Date(session.created_at) >= twentyFourHoursAgo;
-
         return {
           ...session,
           participantCount: participantCount || 0,
-          isActive,
+          isActive: session.is_active ?? true,
         };
       })
     );
