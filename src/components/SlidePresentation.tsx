@@ -52,7 +52,7 @@ export function SlidePresentation({
       )}>
         {title && (
           <h1 className={cn(
-            "font-extrabold tracking-tighter text-foreground text-center animate-in fade-in slide-in-from-top-4 duration-700 break-words w-full",
+            "font-extrabold tracking-tighter text-foreground text-center animate-in fade-in slide-in-from-top-4 duration-700 break-words w-full leading-tight sm:leading-snug",
             isFullScreen 
               ? "text-4xl sm:text-6xl md:text-8xl" 
               : "text-2xl sm:text-4xl md:text-6xl"
