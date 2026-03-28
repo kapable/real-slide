@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/auth";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -11,7 +12,6 @@ export async function GET(
   try {
     const { sessionId } = await params;
 
-    // 환경 변수 확인
     if (!supabaseUrl || !supabaseAnonKey) {
       console.error("❌ 환경 변수가 설정되지 않았습니다");
       return NextResponse.json(
@@ -69,6 +69,7 @@ export async function POST(
   { params }: { params: Promise<{ sessionId: string }> },
 ) {
   try {
+    const userId = await requireAuth(request);
     const { sessionId } = await params;
     const { type, title, content, options, correctAnswer, metadata } =
       await request.json();
@@ -82,6 +83,20 @@ export async function POST(
     }
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+    // 소유권 검증
+    const { data: session } = await supabase
+      .from("sessions")
+      .select("created_by")
+      .eq("id", sessionId)
+      .single();
+
+    if (!session || session.created_by !== userId) {
+      return NextResponse.json(
+        { error: "세션 소유자만 슬라이드를 추가할 수 있습니다" },
+        { status: 403 },
+      );
+    }
 
     console.log(
       `📝 슬라이드 추가 요청: sessionId=${sessionId}, type=${type}, title=${title}`,
@@ -133,6 +148,7 @@ export async function POST(
     console.log(`✅ 슬라이드 추가 성공: id=${data.id}`);
     return NextResponse.json(data);
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("❌ POST API 에러:", error);
     return NextResponse.json(
       {

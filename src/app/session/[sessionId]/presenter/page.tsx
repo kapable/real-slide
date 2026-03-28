@@ -11,6 +11,7 @@ import WordcloudDisplay from "@/components/WordcloudDisplay";
 import { PresenterSidebar } from "@/components/PresenterSidebar";
 import { AddSlideForm } from "@/components/AddSlideForm";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 import { 
   SidebarProvider, 
   SidebarInset, 
@@ -56,6 +57,7 @@ export default function PresenterPage() {
   const router = useRouter();
   const params = useParams();
   const sessionId = params.sessionId as string;
+  const { userId, loading: authLoading } = useAuth();
 
   const [slides, setSlides] = useState<Slide[]>([]);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
@@ -66,32 +68,59 @@ export default function PresenterPage() {
   const [isCopied, setIsCopied] = useState(false);
   const [isAddSlideOpen, setIsAddSlideOpen] = useState(false);
   const [isPresentationOpen, setIsPresentationOpen] = useState(false);
-  
+  const [presenterId, setPresenterId] = useState<string>("presenter");
+
   const channelRef = useRef<any>(null);
 
-  // Fetch slides on mount
+  // Fetch slides + ownership check
   useEffect(() => {
+    if (authLoading) return;
+    if (!userId) {
+      setIsLoading(false);
+      setError("인증이 필요합니다");
+      return;
+    }
+
     const fetchSlides = async () => {
       try {
+        const sessionResponse = await fetch(`/api/sessions/${sessionId}`);
+        if (!sessionResponse.ok) throw new Error("세션을 찾을 수 없습니다");
+        const sessionData = await sessionResponse.json();
+
+        setShareCode(sessionData.share_code);
+
+        // 소유권 확인: 다른 사용자의 세션이면 참가자로 리다이렉트
+        if (sessionData.created_by && sessionData.created_by !== userId) {
+          router.replace(`/join/${sessionData.share_code}`);
+          return;
+        }
+
+        // created_by가 null이면 claim
+        if (!sessionData.created_by) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.access_token) {
+            await fetch(`/api/sessions/${sessionId}/claim`, {
+              method: "PATCH",
+              headers: { "Authorization": `Bearer ${session.access_token}` },
+            });
+          }
+        }
+
+        setPresenterId(userId);
+
         const response = await fetch(`/api/slides/${sessionId}`);
-        if (!response.ok) throw new Error("Failed to load slides");
+        if (!response.ok) throw new Error("슬라이드를 불러올 수 없습니다");
         const data = await response.json();
         setSlides(data);
-
-        const sessionResponse = await fetch(`/api/sessions/${sessionId}`);
-        if (sessionResponse.ok) {
-          const sessionData = await sessionResponse.json();
-          setShareCode(sessionData.share_code);
-        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load slides");
+        setError(err instanceof Error ? err.message : "슬라이드를 불러올 수 없습니다");
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchSlides();
-  }, [sessionId]);
+  }, [sessionId, userId, authLoading, router]);
 
   const updateVoteChart = useCallback(async (slideId: string, type: string) => {
     try {
@@ -463,7 +492,7 @@ export default function PresenterPage() {
                 <div className="flex-1 min-h-[400px]">
                   <CommentSection
                     slideId={currentSlide?.id || ""}
-                    participantId="presenter"
+                    participantId={presenterId}
                     nickname="발표자"
                   />
                 </div>

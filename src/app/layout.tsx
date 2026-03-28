@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { WebVitals } from "@/components/WebVitals";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { AuthContextProvider } from "@/contexts/AuthContext";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -55,9 +56,11 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className="bg-gray-50">
-        <WebVitals />
-        <OfflineIndicator />
-        {children}
+        <AuthContextProvider>
+          <WebVitals />
+          <OfflineIndicator />
+          {children}
+        </AuthContextProvider>
       </body>
     </html>
   );

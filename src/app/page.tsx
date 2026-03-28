@@ -1,7 +1,83 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Presentation, Users, Zap, MessageSquare } from "lucide-react";
+import { Presentation, Users, Zap, MessageSquare, Clock, Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { getMySessions } from "@/lib/api";
+import type { SessionWithMeta } from "@/types";
+
+function MySessionsSection() {
+  const { userId, loading: authLoading } = useAuth();
+  const [sessions, setSessions] = useState<SessionWithMeta[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+    getMySessions()
+      .then(setSessions)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [userId]);
+
+  if (authLoading || loading) {
+    return (
+      <section className="py-12 container">
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      </section>
+    );
+  }
+
+  if (!userId || sessions.length === 0) return null;
+
+  return (
+    <section className="py-12 container">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">내가 만든 발표</h2>
+          <p className="text-muted-foreground text-sm mt-1">최근 생성한 프레젠테이션 세션</p>
+        </div>
+        <Button asChild size="sm">
+          <Link href="/creator">새 발표 만들기</Link>
+        </Button>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {sessions.map((session) => (
+          <Link key={session.id} href={`/session/${session.id}/presenter`}>
+            <Card className="hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 cursor-pointer">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg line-clamp-1">{session.title}</CardTitle>
+                <CardDescription className="flex items-center gap-1 text-xs">
+                  <Clock className="h-3 w-3" />
+                  {new Date(session.created_at).toLocaleDateString("ko-KR")}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Presentation className="h-3.5 w-3.5" />
+                    {session.slide_count}슬라이드
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Users className="h-3.5 w-3.5" />
+                    {session.participant_count}명
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 export default function Home() {
   return (
@@ -38,7 +114,7 @@ export default function Home() {
               투표, 퀴즈, 워드클라우드까지 모든 상호작용이 실시간으로 이루어집니다.
             </p>
           </div>
-          
+
           <div className="flex flex-col sm:flex-row gap-4">
             <Button asChild size="lg" className="h-12 px-8 text-lg rounded-full">
               <Link href="/creator">지금 시작하기</Link>
@@ -55,6 +131,9 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {/* My Sessions */}
+        <MySessionsSection />
 
         {/* Features Section */}
         <section id="features" className="py-24 bg-muted/30">

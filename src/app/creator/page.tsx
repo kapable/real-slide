@@ -7,9 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Presentation, Sparkles, Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
 
 export default function CreatorPage() {
   const router = useRouter();
+  const { loading: authLoading } = useAuth();
   const [title, setTitle] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -25,14 +28,23 @@ export default function CreatorPage() {
 
     try {
       setIsLoading(true);
+
+      // 세션 토큰 가져오기
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("인증이 필요합니다");
+
       const response = await fetch("/api/sessions/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({ title }),
       });
 
       if (!response.ok) {
-        throw new Error("세션 생성 실패");
+        const data = await response.json();
+        throw new Error(data.error || "세션 생성 실패");
       }
 
       const { sessionId } = await response.json();
@@ -82,7 +94,7 @@ export default function CreatorPage() {
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="예: 2024년 상반기 성과 발표"
                   className="h-12 text-lg"
-                  disabled={isLoading}
+                  disabled={isLoading || authLoading}
                 />
               </div>
 
@@ -95,13 +107,13 @@ export default function CreatorPage() {
               <Button
                 type="submit"
                 size="lg"
-                disabled={isLoading}
+                disabled={isLoading || authLoading}
                 className="w-full h-12 text-lg font-semibold shadow-lg shadow-primary/20 transition-all active:scale-[0.98]"
               >
-                {isLoading ? (
+                {isLoading || authLoading ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    생성 중...
+                    {authLoading ? "인증 중..." : "생성 중..."}
                   </>
                 ) : (
                   <>

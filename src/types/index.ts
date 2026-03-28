@@ -1,11 +1,21 @@
 // 타입 정의
 export interface Session {
   id: string;
-  created_by: string;
+  created_by: string | null;
   title: string;
   share_code: string;
   created_at: string;
   updated_at: string;
+  is_owner?: boolean;
+}
+
+export interface SessionWithMeta {
+  id: string;
+  title: string;
+  share_code: string;
+  created_at: string;
+  slide_count: number;
+  participant_count: number;
 }
 
 export interface Slide {

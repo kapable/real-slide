@@ -1,6 +1,25 @@
 // Supabase API 유틸리티
 import { supabase } from "./supabase";
-import { Session, Slide, Participant } from "@/types";
+import { Session, SessionWithMeta, Slide, Participant } from "@/types";
+
+/**
+ * Supabase 세션에서 토큰을 가져와 Authorization 헤더를 자동 첨부합니다.
+ */
+async function authFetch(url: string, options: RequestInit = {}) {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const headers: Record<string, string> = {
+    ...(options.headers as Record<string, string>),
+  };
+
+  if (session?.access_token) {
+    headers["Authorization"] = `Bearer ${session.access_token}`;
+  }
+
+  return fetch(url, { ...options, headers });
+}
 
 // Session 관리
 export const createSession = async (title: string) => {
@@ -10,7 +29,6 @@ export const createSession = async (title: string) => {
       {
         title,
         share_code: generateShareCode(),
-        created_by: "anonymous",
       },
     ])
     .select()
@@ -40,6 +58,19 @@ export const getSessionByCode = async (code: string) => {
 
   if (error) throw error;
   return data as Session;
+};
+
+export const getMySessions = async (): Promise<SessionWithMeta[]> => {
+  const response = await authFetch("/api/sessions/mine");
+  if (!response.ok) throw new Error("내 세션 조회 실패");
+  return response.json();
+};
+
+export const claimSession = async (sessionId: string): Promise<void> => {
+  const response = await authFetch(`/api/sessions/${sessionId}/claim`, {
+    method: "PATCH",
+  });
+  if (!response.ok) throw new Error("세션 소유권 획득 실패");
 };
 
 // Slide 관리

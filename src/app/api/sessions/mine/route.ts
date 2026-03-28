@@ -5,44 +5,35 @@ import { requireAuth } from "@/lib/auth";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-function generateShareCode(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let code = "";
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
-}
-
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     const userId = await requireAuth(request);
-    const { title } = await request.json();
-
-    if (!title?.trim()) {
-      return NextResponse.json({ error: "제목이 필요합니다" }, { status: 400 });
-    }
-
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const shareCode = generateShareCode();
 
     const { data, error } = await supabase
       .from("sessions")
-      .insert([
-        {
-          title: title.trim(),
-          share_code: shareCode,
-          created_by: userId,
-        },
-      ])
-      .select()
-      .single();
+      .select(`
+        *,
+        slides:slides(count),
+        participants:participants(count)
+      `)
+      .eq("created_by", userId)
+      .order("created_at", { ascending: false });
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ sessionId: data.id });
+    const sessions = data.map((s: any) => ({
+      id: s.id,
+      title: s.title,
+      share_code: s.share_code,
+      created_at: s.created_at,
+      slide_count: s.slides?.[0]?.count ?? 0,
+      participant_count: s.participants?.[0]?.count ?? 0,
+    }));
+
+    return NextResponse.json(sessions);
   } catch (error) {
     if (error instanceof Response) return error;
     return NextResponse.json(
