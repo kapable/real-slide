@@ -24,7 +24,7 @@ export default function LoginPage() {
   const [isSigningIn, setIsSigningIn] = useState(false);
 
   const nextParam = searchParams.get("next") || "";
-  const safeNext = isValidNextPath(nextParam) ? nextParam : "/my-sessions";
+  const safeNext = isValidNextPath(nextParam) ? nextParam : "/";
 
   // 이미 로그인된 사용자 리다이렉트
   useEffect(() => {

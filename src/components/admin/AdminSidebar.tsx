@@ -13,10 +13,12 @@ import {
   Shield,
   Menu,
   X,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Memoized nav item component
 const NavItem = memo(function NavItem({
@@ -50,6 +52,7 @@ function AdminSidebarComponent() {
   const pathname = usePathname();
   const router = useRouter();
   const { t } = useLanguage();
+  const { signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
   // Memoize navigation items
@@ -124,7 +127,7 @@ function AdminSidebarComponent() {
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t">
+        <div className="p-4 border-t space-y-1">
           <Link
             href="/"
             prefetch={true}
@@ -133,6 +136,16 @@ function AdminSidebarComponent() {
             <Presentation className="h-4 w-4" />
             {t.admin.sidebar.backToApp}
           </Link>
+          <button
+            onClick={async () => {
+              await signOut();
+              router.push("/");
+            }}
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all w-full"
+          >
+            <LogOut className="h-4 w-4" />
+            로그아웃
+          </button>
         </div>
       </>
     ),
