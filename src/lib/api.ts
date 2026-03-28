@@ -83,6 +83,20 @@ export const deleteSession = async (sessionId: string): Promise<void> => {
   }
 };
 
+export const toggleSessionActive = async (
+  sessionId: string,
+): Promise<{ is_active: boolean }> => {
+  const response = await authFetch(
+    `/api/sessions/${sessionId}/toggle-active`,
+    { method: "PATCH" },
+  );
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({ error: "토글 실패" }));
+    throw new Error(data.error || "세션 상태 변경 실패");
+  }
+  return response.json();
+};
+
 // Slide 관리
 export const getSlides = async (sessionId: string) => {
   const { data, error } = await supabase

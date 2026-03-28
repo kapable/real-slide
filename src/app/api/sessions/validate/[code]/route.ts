@@ -23,7 +23,7 @@ export async function GET(
 
     const { data, error } = await supabase
       .from("sessions")
-      .select("id")
+      .select("id, is_active")
       .eq("share_code", code)
       .single();
 
@@ -31,6 +31,13 @@ export async function GET(
       return NextResponse.json(
         { error: "세션을 찾을 수 없습니다" },
         { status: 404 },
+      );
+    }
+
+    if (!data.is_active) {
+      return NextResponse.json(
+        { error: "비활성화된 세션입니다" },
+        { status: 403 },
       );
     }
 

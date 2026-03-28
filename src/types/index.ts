@@ -7,6 +7,7 @@ export interface Session {
   created_at: string;
   updated_at: string;
   is_owner?: boolean;
+  is_active: boolean;
 }
 
 export interface SessionWithMeta {
@@ -16,6 +17,7 @@ export interface SessionWithMeta {
   created_at: string;
   slide_count: number;
   participant_count: number;
+  is_active: boolean;
 }
 
 export interface Slide {

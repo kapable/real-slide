@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
       created_at: s.created_at,
       slide_count: s.slides?.[0]?.count ?? 0,
       participant_count: s.participants?.[0]?.count ?? 0,
+      is_active: s.is_active ?? true,
     }));
 
     return NextResponse.json(sessions);

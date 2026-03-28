@@ -216,8 +216,12 @@ function ParticipantView() {
             </div>
           )}
 
-          {/* Slide Box with Header Control */}
-          <div className="flex flex-col gap-2 group">
+          {/* Slide Box with Header Control - 모바일에서 투표/퀴즈 슬라이드는 숨김 (하단 인터랙션 영역과 중복) */}
+          <div className={cn(
+            currentSlide && (currentSlide.type === "vote" || currentSlide.type === "quiz")
+              ? "hidden md:flex md:flex-col gap-2 group"
+              : "flex flex-col gap-2 group"
+          )}>
             <div className="flex items-center justify-between gap-3 px-2">
               <div className="flex items-center gap-2 opacity-50 group-hover:opacity-100 transition-opacity flex-shrink-0">
                 <PresentationIcon className="h-3.5 w-3.5" />

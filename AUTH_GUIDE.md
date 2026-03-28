@@ -1176,6 +1176,133 @@ ORDER BY s.created_at DESC;
 | `src/app/api/sessions/[sessionId]/route.ts` | 수정 | `DELETE` 핸들러 추가 (소유권 검증) |
 | `src/lib/api.ts` | 수정 | `deleteSession(id)` 함수 추가 |
 
+## 세션 활성화/비활성화 기능 명세
+
+### 개요
+
+모더레이터가 `/my-sessions` 페이지에서 자신이 만든 세션을 활성화/비활성화할 수 있는 기능입니다. 비활성화된 세션은 참가자가 접속할 수 없으며, 활성화 시에만 참가자 참여가 가능합니다.
+
+### 데이터베이스 변경
+
+#### sessions 테이블에 `is_active` 컬럼 추가
+
+```sql
+ALTER TABLE public.sessions
+  ADD COLUMN IF NOT EXISTS is_active boolean NOT NULL DEFAULT true;
+```
+
+- 기본값: `true` (기존 세션은 모두 활성 상태)
+- 세션 생성 시 자동으로 `is_active = true` 설정
+
+### 프론트엔드
+
+#### SessionCard 변경
+
+`src/components/SessionCard.tsx` 수정:
+
+| 항목 | 현재 | 변경 |
+|---|---|---|
+| 세션 상태 표시 | 없음 | 활성/비활성 상태 배지 표시 |
+| 활성화/비활성화 버튼 | 없음 | 토글 버튼 추가 (Switch 컴포넌트) |
+| 비활성 세션 카드 | N/A | 흐림 처리 (opacity), "비활성" 배지 |
+| "발표 시작" 버튼 | 항상 활성 | 비활성 세션도 발표자 접근은 가능 (관리 목적) |
+
+**상태 배지**:
+
+| 상태 | 배지 스타일 | 텍스트 |
+|---|---|---|
+| 활성 (`is_active: true`) | 녹색 배경 | 활성 |
+| 비활성 (`is_active: false`) | 회색 배경 | 비활성 |
+
+#### 타입 변경
+
+`src/types/index.ts` 수정:
+
+```typescript
+export interface SessionWithMeta {
+  id: string;
+  title: string;
+  share_code: string;
+  created_at: string;
+  slide_count: number;
+  participant_count: number;
+  is_active: boolean;  // 신규
+}
+```
+
+### 백엔드
+
+#### `PATCH /api/sessions/[sessionId]/toggle-active` (신규)
+
+**파일**: `src/app/api/sessions/[sessionId]/toggle-active/route.ts` (신규)
+
+세션의 `is_active` 상태를 토글합니다.
+
+**요청**:
+- 메서드: `PATCH`
+- 인증: 필수 (`requireAuth`)
+- 헤더: `Authorization: Bearer {access_token}`
+
+**의사 코드**:
+
+```
+1. requireAuth(request) → userId
+2. SELECT created_by, is_active FROM sessions WHERE id = sessionId
+3. 세션 없음 → 404
+4. created_by !== userId → 403
+5. UPDATE sessions SET is_active = !is_active WHERE id = sessionId
+6. 200 { is_active: boolean }
+```
+
+**성공 응답 (200)**:
+
+```typescript
+{
+  is_active: boolean;
+}
+```
+
+**에러 응답**:
+
+| 상태 코드 | 조건 | 본문 |
+|---|---|---|
+| 401 | 미인증 | `{ error: "인증이 필요합니다" }` |
+| 403 | 비소유자 | `{ error: "세션 소유자만 변경할 수 있습니다" }` |
+| 404 | 세션 없음 | `{ error: "세션을 찾을 수 없습니다" }` |
+
+#### `GET /api/sessions/mine` 응답 변경
+
+`is_active` 필드를 응답에 포함:
+
+```typescript
+{
+  // ...기존 필드
+  is_active: boolean;
+}
+```
+
+#### `GET /api/sessions/validate/[code]` 변경
+
+세션 유효성 검증 시 `is_active` 확인 추가:
+
+```
+1. 기존: share_code로 세션 조회 → 존재하면 200
+2. 변경: share_code로 세션 조회 → 존재 && is_active → 200
+         → 존재하지만 !is_active → 403 { error: "비활성화된 세션입니다" }
+         → 존재하지 않음 → 404
+```
+
+### 변경 파일 요약
+
+| 파일 | 유형 | 변경 내용 |
+|---|---|---|
+| `src/types/index.ts` | 수정 | `SessionWithMeta`에 `is_active` 필드 추가 |
+| `src/components/SessionCard.tsx` | 수정 | 활성/비활성 토글 스위치, 상태 배지 추가 |
+| `src/app/api/sessions/[sessionId]/toggle-active/route.ts` | 신규 | `PATCH` 세션 활성 상태 토글 API |
+| `src/app/api/sessions/mine/route.ts` | 수정 | 응답에 `is_active` 필드 포함 |
+| `src/app/api/sessions/validate/[code]/route.ts` | 수정 | 비활성 세션 참가 차단 |
+| `src/lib/api.ts` | 수정 | `toggleSessionActive(id)` 함수 추가 |
+
 ## E2E 테스트 목록
 
 ### 프론트엔드 테스트

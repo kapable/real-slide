@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Presentation, Plus, Loader2, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getMySessions, deleteSession } from "@/lib/api";
+import { getMySessions, deleteSession, toggleSessionActive } from "@/lib/api";
 import SessionCard from "@/components/SessionCard";
 import type { SessionWithMeta } from "@/types";
 
@@ -34,6 +34,13 @@ export default function MySessionsPage() {
   const handleDelete = async (sessionId: string) => {
     await deleteSession(sessionId);
     setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+  };
+
+  const handleToggleActive = async (sessionId: string, isActive: boolean) => {
+    await toggleSessionActive(sessionId);
+    setSessions((prev) =>
+      prev.map((s) => (s.id === sessionId ? { ...s, is_active: isActive } : s)),
+    );
   };
 
   // 로딩 스피너
@@ -126,6 +133,7 @@ export default function MySessionsPage() {
                 key={session.id}
                 session={session}
                 onDelete={handleDelete}
+                onToggleActive={handleToggleActive}
               />
             ))}
           </div>
