@@ -16,12 +16,13 @@ import {
   SidebarProvider, 
   SidebarInset, 
 } from "@/components/ui/sidebar";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogTrigger, 
-  DialogHeader, 
-  DialogTitle 
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -201,9 +202,13 @@ export default function PresenterPage() {
 
   const handleAddSlide = async (slideData: any) => {
     try {
+      const { data: { session: authSession } } = await supabase.auth.getSession();
       const response = await fetch(`/api/slides/${sessionId}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(authSession ? { "Authorization": `Bearer ${authSession.access_token}` } : {}),
+        },
         body: JSON.stringify(slideData),
       });
 
@@ -244,9 +249,13 @@ export default function PresenterPage() {
     
     try {
       // 1. API를 통해 DB 업데이트
+      const { data: { session: authSession } } = await supabase.auth.getSession();
       const response = await fetch(`/api/slides/${sessionId}/${currentSlide.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(authSession ? { "Authorization": `Bearer ${authSession.access_token}` } : {}),
+        },
         body: JSON.stringify({ show_result: nextShowResult }),
       });
 
@@ -513,6 +522,7 @@ export default function PresenterPage() {
           <DialogContent className="sm:max-w-[480px] p-6 gap-0 border border-muted/200 shadow-2xl overflow-hidden bg-background/95 backdrop-blur-xl rounded-3xl">
             <DialogHeader className="sr-only">
               <DialogTitle>새 슬라이드 추가</DialogTitle>
+              <DialogDescription>발표에 새로운 슬라이드를 추가합니다</DialogDescription>
             </DialogHeader>
             <AddSlideForm
               onAdd={handleAddSlide}
