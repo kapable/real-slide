@@ -1461,6 +1461,71 @@ export interface SessionWithMeta {
 
 모든 자동화 가능한 테스트가 통과했습니다. 수동 테스트 항목은 Google OAuth 로그인 완료 후 브라우저에서 진행해야 합니다.
 
+## 세션 활성화/비활성화 E2E 테스트 결과 (2026-03-29)
+
+### 테스트 환경
+
+| 항목 | 내용 |
+|---|---|
+| 서버 | Next.js dev server (`npm run dev`) on `localhost:3001` |
+| 테스트 도구 | Node.js fetch (백엔드), Playwright (프론트엔드) |
+| 테스트 시간 | 2026-03-29 |
+| 데이터베이스 | Supabase (`is_active` 컬럼 추가 완료) |
+
+### 백엔드 결과 (9 통과 / 0 실패)
+
+| # | 테스트 케이스 | 결과 | 비고 |
+|---|---|---|---|
+| TB-4 | 미인증 `PATCH /api/sessions/{id}/toggle-active` → 401 | PASS | `"인증이 필요합니다"` 에러 메시지 확인 |
+| TB-4b | 잘못된 토큰 `toggle-active` → 401 | PASS | `Bearer invalid-token-12345` |
+| TB-5 | 존재하지 않는 세션 `toggle-active` (미인증) → 401 | PASS | 인증 먼저 검증, 401 반환 |
+| TB-6 | 미인증 `GET /api/sessions/mine` → 401 | PASS | Authorization 없이 |
+| TB-6b | 잘못된 토큰 `sessions/mine` → 401 | PASS | `Bearer invalid-token-12345` |
+| TB-9 | 존재하지 않는 코드 `validate/ZZZZZZ` → 404 | PASS | 세션 찾을 수 없음 |
+| TB-9b | 잘못된 길이 코드 `validate/ABC` → 400 | PASS | 유효하지 않은 코드 |
+| TB-9c | 6자리 코드 형식 `validate/A1B2C3` → 404 | PASS | 없는 코드, 형식은 유효 |
+| TB-delete | 미인증 세션 삭제 → 401 | PASS | DELETE /api/sessions/{id} |
+
+### 프론트엔드 결과 (3 통과 / 0 실패)
+
+| # | 테스트 케이스 | 결과 | 비고 |
+|---|---|---|---|
+| T-redirect | 미로그인 `/my-sessions` → `/login` 리다이렉트 | PASS | `/login?next=/my-sessions`로 정확히 리다이렉트 |
+| T-login-page | `/login` 페이지 Google 버튼 표시 | PASS | Google 로그인 버튼 정상 표시 |
+| T-home | 홈페이지 정상 렌더링 | PASS | Real-Slide, 지금 시작하기 텍스트 확인 |
+
+### 수동 테스트 필요 항목
+
+| # | 테스트 케이스 | 비고 |
+|---|---|---|
+| TB-1 | 소유자 세션 활성→비활성 토글 | Google OAuth 토큰 필요 |
+| TB-2 | 소유자 세션 비활성→활성 토글 | Google OAuth 토큰 필요 |
+| TB-3 | 비소유자 토글 시도 → 403 | Google OAuth 토큰 필요 |
+| TB-7 | 활성 세션 공유 코드 validate | 활성 세션 코드 필요 |
+| TB-8 | 비활성 세션 공유 코드 validate → 403 | 비활성 세션 코드 필요 |
+| TB-10 | 토글 후 DB 값 확인 | DB 접근 필요 |
+| TB-11 | 연속 토글 2회 | Google OAuth 토큰 필요 |
+| T-1 | 활성 세션 카드 UI | Google OAuth 로그인 필요 |
+| T-2 | 비활성 세션 카드 UI | Google OAuth 로그인 필요 |
+| T-3 | Switch 토글 활성→비활성 | Google OAuth 로그인 필요 |
+| T-4 | Switch 토글 비활성→활성 | Google OAuth 로그인 필요 |
+| T-5 | 토글 중 로딩 상태 | Google OAuth 로그인 필요 |
+| T-6 | 토글 API 실패 시 롤백 | Google OAuth 로그인 필요 |
+| T-7 | 비활성 세션 "발표 시작" 버튼 | Google OAuth 로그인 필요 |
+| T-8 | 공유 코드 복사 | Google OAuth 로그인 필요 |
+| T-9 | 내 세션 목록 `is_active` 필드 | Google OAuth 로그인 필요 |
+| T-11 | 활성 세션 공유 코드 참가 | 활성 세션 필요 |
+
+### 요약
+
+| 영역 | 자동화 통과 | 자동화 실패 | 수동 필요 |
+|---|---|---|---|
+| 프론트엔드 | 3 | 0 | 8 |
+| 백엔드 | 9 | 0 | 7 |
+| **합계** | **12** | **0** | **15** |
+
+모든 자동화 가능한 테스트가 통과했습니다. 수동 테스트 항목은 Google OAuth 로그인 완료 후 브라우저에서 진행해야 합니다.
+
 ## 참고 자료
 
 - [Supabase Google Auth](https://supabase.com/docs/guides/auth/social-login/auth-google)
