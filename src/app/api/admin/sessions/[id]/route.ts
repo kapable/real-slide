@@ -11,13 +11,30 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { title } = body;
+    const { title, is_active } = body;
 
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+    // Toggle active/inactive
+    if (typeof is_active === "boolean" && !title) {
+      const { data, error } = await supabase
+        .from("sessions")
+        .update({ is_active })
+        .eq("id", id)
+        .select("is_active")
+        .single();
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+      return NextResponse.json({ is_active: data.is_active });
+    }
+
+    // Update title
     if (!title || typeof title !== "string") {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
     const { data, error } = await supabase
       .from("sessions")
       .update({ title: title.trim() })

@@ -33,6 +33,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import {
   Search,
   MoreHorizontal,
@@ -48,6 +49,7 @@ import {
   ArrowUp,
   ArrowDown,
   Pencil,
+  Play,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
@@ -181,6 +183,29 @@ export default function SessionsPage() {
       });
     }
   }, [t.admin.success.copied, t.admin.errors.unknownError, toast]);
+
+  const handleToggleActive = useCallback(async (sessionId: string, isActive: boolean) => {
+    try {
+      const res = await fetch(`/api/admin/sessions/${sessionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_active: isActive }),
+      });
+      if (res.ok) {
+        setSessions((prev) =>
+          prev.map((s) => (s.id === sessionId ? { ...s, isActive } : s)),
+        );
+        toast({ title: isActive ? "세션이 활성화되었습니다" : "세션이 비활성화되었습니다" });
+      } else {
+        throw new Error("Toggle failed");
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "상태 변경에 실패했습니다",
+      });
+    }
+  }, [toast]);
 
   const handleEditSession = useCallback((session: Session) => {
     setEditSession(session);
@@ -325,11 +350,18 @@ export default function SessionsPage() {
                           </code>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={session.isActive ? "default" : "secondary"}>
-                            {session.isActive
-                              ? t.admin.sessions.status.active
-                              : t.admin.sessions.status.inactive}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={session.isActive ? "default" : "secondary"}>
+                              {session.isActive
+                                ? t.admin.sessions.status.active
+                                : t.admin.sessions.status.inactive}
+                            </Badge>
+                            <Switch
+                              checked={session.isActive}
+                              onCheckedChange={(checked) => handleToggleActive(session.id, checked)}
+                              className="data-[state=checked]:bg-green-500"
+                            />
+                          </div>
                         </TableCell>
                         <TableCell className="text-center">
                           {session.participantCount}
@@ -343,6 +375,12 @@ export default function SessionsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem asChild>
+                                <Link href={`/session/${session.id}/presenter`}>
+                                  <Play className="h-4 w-4 mr-2" />
+                                  발표 시작
+                                </Link>
+                              </DropdownMenuItem>
                               <DropdownMenuItem asChild>
                                 <Link href={`/admin/sessions/${session.id}`}>
                                   <Eye className="h-4 w-4 mr-2" />
