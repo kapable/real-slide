@@ -406,6 +406,1000 @@ const { data, error } = await supabase.auth.signInWithOAuth({
 | **Next.js 정적 렌더링 주의** | Supabase 공식 문서에서 익명 사용자 메타데이터가 Next.js 정적 렌더링에 의해 캐싱될 수 있음을 경고. 동적 렌더링(`export const dynamic = 'force-dynamic'`) 사용 권장 |
 | **세션 만료 관리** | 익명 세션은 브라우저 종료 후에도 Supabase localStorage 토큰으로 유지됨. 단, 토큰 만료(기본 1시간) 후 자동 갱신됨 |
 
+## 프론트엔드 기능 명세
+
+### 개요
+
+Anonymous Auth 도입에 필요한 프론트엔드 변경사항을 페이지/컴포넌트 단위로 정의합니다. 각 항목은 현재 코드 기준에서의 변경점을 명시합니다.
+
+### F-1. AuthProvider 컨텍스트
+
+**파일**: `src/contexts/AuthProvider.tsx` (신규)
+
+루트 레이아웃(`src/app/layout.tsx`)에 추가할 인증 컨텍스트입니다.
+
+**책임**:
+- 앱 진입 시 `supabase.auth.getSession()`으로 기존 세션 복원
+- 세션이 없으면 `supabase.auth.signInAnonymously()` 호출하여 익명 UID 발급
+- `onAuthStateChange()` 리스너 등록으로 인증 상태 변화 감지
+- 하위 컴포넌트에 `user`, `userId`, `isAnonymous`, `loading` 상태 제공
+
+**상태**:
+
+| 상태 | 타입 | 설명 |
+|---|---|---|
+| `user` | `User \| null` | Supabase auth user 객체 |
+| `userId` | `string \| null` | `user.id` (auth.uid()). 세션 생성 시 `created_by`로 사용 |
+| `isAnonymous` | `boolean` | `user?.is_anonymous` 여부 |
+| `loading` | `boolean` | 초기 인증 완료 여부. `true`인 동안 전체 UI 숨김 |
+
+**레이아웃 통합** (`src/app/layout.tsx`):
+
+```
+기존:
+  <html>
+    <body>
+      <WebVitals />
+      <OfflineIndicator />
+      {children}
+    </body>
+  </html>
+
+변경:
+  <html>
+    <body>
+      <WebVitals />
+      <OfflineIndicator />
+      <AuthProvider>       ← 추가
+        {children}
+      </AuthProvider>
+    </body>
+  </html>
+```
+
+**Supabase 클라이언트 변경** (`src/lib/supabase.ts`):
+
+현재는 단순 `createClient` 호출만 있음. Auth 기능을 사용하기 위해 별도 변경은 필요하지 않으나, Next.js App Router 환경에서 Supabase Auth 세션 관리를 위해 서버 컴포넌트와 클라이언트 컴포넌트에서 각각 다른 인스턴스가 필요할 수 있음. 초기 구현에서는 기존 클라이언트 인스턴스에 `auth` 속성만 활용하는 것으로 충분.
+
+### F-2. 홈페이지 변경
+
+**파일**: `src/app/page.tsx` (수정)
+
+현재 홈페이지는 Header, Hero, Features 세 섹션으로 구성되어 있습니다. "내가 만든 발표" 섹션을 추가합니다.
+
+**추가 섹션**: "내가 만든 발표" (Hero와 Features 사이에 삽입)
+
+```
+[Header]
+  logo | "지금 시작하기" | "세션 참여하기"
+
+[Hero Section] (기존과 동일)
+  "실시간 대화형 프레젠테이션의 미래"
+  [새 발표 만들기] [세션 참여하기]
+
+[내 세션 목록] ← 신규 섹션 (로그인한 사용자만 표시)
+  ┌─────────────────────────────────────────┐
+  │ 내가 만든 발표                          │
+  │                                         │
+  │ ┌─────────┐ ┌─────────┐ ┌─────────┐   │
+  │ │ 세션 A  │ │ 세션 B  │ │ 세션 C  │   │
+  │ │ 5개 슬라이드 │ │ 3개 슬라이드 │ │ 8개 슬라이드 │ │
+  │ │ 3월 27일 │ │ 3월 26일 │ │ 3월 25일 │   │
+  │ └─────────┘ └─────────┘ └─────────┘   │
+  └─────────────────────────────────────────┘
+
+[Features Section] (기존과 동일)
+```
+
+**표시 조건**:
+- `userId`가 있을 때 (익명 포함) 섹션 표시
+- `loading`이 `true`이면 스켈레톤 UI 표시
+- 세션이 없으면 "아직 만든 발표가 없습니다. 새 발표를 만들어보세요!" 안내 문구 표시
+
+**세션 카드 정보**:
+
+| 항목 | 데이터 소스 |
+|---|---|
+| 세션 제목 | `sessions.title` |
+| 슬라이드 수 | `slides` 테이블에서 COUNT |
+| 생성일 | `sessions.created_at` (상대 시간 표시, 예: "3월 27일") |
+| 참가자 수 | `participants` 테이블에서 COUNT |
+| 공유 코드 | `sessions.share_code` |
+
+**인터랙션**:
+- 카드 클릭 → `/session/[sessionId]/presenter` 이동
+- 공유 코드 복사 버튼 (클립보드 복사)
+
+**데이터 조회**: `GET /api/sessions/mine` 호출 (F-6 참조)
+
+### F-3. 세션 생성 페이지 변경
+
+**파일**: `src/app/creator/page.tsx` (수정)
+
+현재는 제목 입력 후 `POST /api/sessions/create` 호출로 세션을 생성합니다. 변경점은 API 요청 시 인증 토큰이 자동으로 포함되도록 하는 것입니다.
+
+**변경사항**:
+
+| 항목 | 현재 | 변경 |
+|---|---|---|
+| API 호출 | `fetch('/api/sessions/create', { body: { title } })` | 동일. 인증 토큰은 Supabase 클라이언트에서 자동 관리 |
+| 에러 처리 | 기본 에러 메시지 | 인증 관련 에러 추가 ("로그인이 필요합니다" 등) |
+| 로딩 | 단순 spinner | 인증 로딩 + 세션 생성 로딩 분리 |
+
+**핵심 변화**: 프론트엔드 코드 변경은 최소화됩니다. 실제 변경은 API 라우트(F-7)에서 발생합니다. 프론트엔드에서는 AuthProvider가 제공하는 `loading` 상태를 확인하여 인증이 완료된 후에만 세션 생성이 가능하도록 합니다.
+
+### F-4. 발표자 페이지 변경
+
+**파일**: `src/app/session/[sessionId]/presenter/page.tsx` (수정)
+
+**현재 하드코딩 값** (변경 필요):
+- `participantId="presenter"` (line 466)
+- `nickname="발표자"` (line 467)
+
+**변경사항**:
+
+| 항목 | 현재 | 변경 |
+|---|---|---|
+| 권한 검증 | 없음. URL만으로 발표자 접근 가능 | 세션 로드 후 `session.created_by !== userId`이면 참가자 페이지로 리다이렉트 |
+| participantId | `"presenter"` 하드코딩 | `userId` (auth.uid()) 사용 |
+| nickname | `"발표자"` 하드코딩 | 유지 (발표자 닉네임은 "발표자"로 고정해도 무방) |
+| 로딩 | 세션 데이터 로딩 | 세션 데이터 로딩 + **인증 상태 확인** |
+
+**권한 검증 흐름**:
+
+```
+1. 페이지 진입
+2. AuthProvider에서 userId 확인 (loading 완료 대기)
+3. 세션 데이터 조회 (GET /api/sessions/[sessionId])
+4. 비교: session.created_by === userId ?
+   ├─ 일치 → 정상 발표자 페이지 렌더링
+   └─ 불일치 → /join/[shareCode] 로 리다이렉트 (참가자로 이동)
+```
+
+**에러 케이스**:
+
+| 상황 | 처리 |
+|---|---|
+| `userId`가 없는 경우 (인증 실패) | 홈페이지로 리다이렉트 |
+| 세션이 존재하지 않는 경우 | 404 안내 |
+| `created_by`와 `userId` 불일치 | 참가자 페이지로 리다이렉트 |
+| 세션의 `created_by`가 NULL인 경우 (마이그레이션 전 세션) | 소유자 없음으로 판단. 첫 접속자에게 소유권 부여 또는 읽기 전용으로 처리 |
+
+### F-5. 내 세션 목록 페이지 (신규)
+
+**파일**: `src/app/my-sessions/page.tsx` (신규)
+
+홈페이지의 "내가 만든 발표" 섹션의 확장판입니다. 더 많은 세션을 확인하고 관리할 수 있는 전용 페이지입니다.
+
+**레이아웃**:
+
+```
+[Header]
+  logo | "지금 시작하기" | "세션 참여하기"
+
+[내 세션 목록]
+  ┌─────────────────────────────────────────────────┐
+  │ 내가 만든 발표                    [새 발표 만들기] │
+  │                                                 │
+  │ ┌─────────────────────────────────────────────┐ │
+  │ │ 📊 3월 수학 수업              코드: ABC123  │ │
+  │ │    12개 슬라이드 · 28명 참여 · 3월 27일 생성 │ │
+  │ │                          [발표 시작] [삭제]  │ │
+  │ └─────────────────────────────────────────────┘ │
+  │                                                 │
+  │ ┌─────────────────────────────────────────────┐ │
+  │ │ 📊 2월 과학 발표              코드: DEF456  │ │
+  │ │    8개 슬라이드 · 15명 참여 · 2월 15일 생성  │ │
+  │ │                          [발표 시작] [삭제]  │ │
+  │ └─────────────────────────────────────────────┘ │
+  │                                                 │
+  └─────────────────────────────────────────────────┘
+```
+
+**기능**:
+
+| 기능 | 설명 |
+|---|---|
+| 세션 목록 | `GET /api/sessions/mine` 응답 데이터를 리스트로 표시 |
+| 정렬 | 기본: 최신 생성순. 선택: 이름순, 슬라이드 수순 |
+| 발표 시작 | 클릭 시 `/session/[sessionId]/presenter` 이동 |
+| 공유 코드 복사 | 클릭 시 클립보드에 share_code 복사 |
+| 세션 삭제 | 삭제 확인 모달 표시 후 `DELETE /api/sessions/[sessionId]` 호출 |
+| 빈 상태 | 세션이 없을 때 "새 발표 만들기" 버튼이 있는 빈 상태 UI |
+| 로딩 | 스켈레톤 UI |
+
+**라우팅**: 홈페이지의 "내가 만든 발표" 섹션에서 "모두 보기" 링크로 이동
+
+### F-6. API 라우트 변경
+
+#### `GET /api/sessions/mine` (신규)
+
+**파일**: `src/app/api/sessions/mine/route.ts` (신규)
+
+현재 사용자가 만든 세션 목록을 반환합니다.
+
+**요청**:
+- 메서드: `GET`
+- 인증: Supabase Auth 세션 필요. 요청 헤더의 Authorization에서 JWT 추출 후 `auth.uid()` 확인
+
+**응답**:
+
+```typescript
+// 성공 (200)
+{
+  sessions: Array<{
+    id: string;
+    title: string;
+    share_code: string;
+    created_at: string;
+    updated_at: string;
+    slide_count: number;     // slides 테이블 COUNT
+    participant_count: number; // participants 테이블 COUNT
+  }>
+}
+
+// 인증 실패 (401)
+{ error: "인증이 필요합니다." }
+```
+
+**쿼리**:
+
+```sql
+SELECT s.*,
+       COUNT(DISTINCT sl.id) AS slide_count,
+       COUNT(DISTINCT p.id) AS participant_count
+FROM public.sessions s
+LEFT JOIN public.slides sl ON sl.session_id = s.id
+LEFT JOIN public.participants p ON p.session_id = s.id
+WHERE s.created_by = auth.uid()
+GROUP BY s.id
+ORDER BY s.created_at DESC;
+```
+
+#### `POST /api/sessions/create` (수정)
+
+**파일**: `src/app/api/sessions/create/route.ts` (수정)
+
+**변경점**:
+
+| 항목 | 현재 (line 33) | 변경 |
+|---|---|---|
+| `created_by` | `"anonymous"` 하드코딩 | `auth.uid()` 에서 추출 |
+| 인증 확인 | 없음 | JWT에서 UID 추출. 없으면 401 응답 |
+
+#### `GET /api/sessions/[sessionId]` (수정)
+
+**파일**: `src/app/api/sessions/[sessionId]/route.ts` (수정)
+
+**변경점**: 응답에 `is_owner` 필드 추가 (프론트엔드에서 권한 판단용)
+
+```typescript
+// 추가 필드
+{
+  is_owner: boolean; // session.created_by === auth.uid()
+}
+```
+
+#### `POST/PUT/DELETE /api/slides/[sessionId]` (수정)
+
+**파일**: `src/app/api/slides/[sessionId]/route.ts` (수정)
+
+**변경점**: 슬라이드 CRUD 시 세션 소유자 확인 추가
+
+```
+1. 요청에서 auth.uid() 추출
+2. 세션 조회: SELECT created_by FROM sessions WHERE id = sessionId
+3. 비교: created_by === auth.uid()
+   ├─ 일치 → 승인
+   └─ 불일치 → 403 응답 ("세션 소유자만 수정할 수 있습니다.")
+```
+
+### F-7. 컴포넌트 명세
+
+#### SessionCard 컴포넌트
+
+**파일**: `src/components/SessionCard.tsx` (신규)
+
+홈페이지와 내 세션 목록 페이지에서 공통으로 사용하는 세션 카드 컴포넌트입니다.
+
+**Props**:
+
+| Prop | 타입 | 설명 |
+|---|---|---|
+| `id` | `string` | 세션 ID |
+| `title` | `string` | 세션 제목 |
+| `shareCode` | `string` | 공유 코드 |
+| `createdAt` | `string` | 생성일 (ISO 문자열) |
+| `slideCount` | `number` | 슬라이드 수 |
+| `participantCount` | `number` | 참가자 수 |
+| `variant` | `"compact" \| "full"` | 홈페이지용(compact) / 목록 페이지용(full) |
+| `onDelete` | `(id: string) => void` | 삭제 콜백 (full variant에서만 표시) |
+
+**표시 요소**:
+
+- compact: 제목, 슬라이드 수, 생성일
+- full: 제목, 공유 코드, 슬라이드 수, 참가자 수, 생성일, 발표 시작 버튼, 삭제 버튼
+
+#### AuthGuard 컴포넌트
+
+**파일**: `src/components/AuthGuard.tsx` (신규)
+
+인증이 필요한 페이지를 감싸는 래퍼 컴포넌트입니다.
+
+**Props**:
+
+| Prop | 타입 | 설명 |
+|---|---|---|
+| `children` | `ReactNode` | 보호할 자식 컴포넌트 |
+| `fallback` | `ReactNode` | 인증 로딩 중 표시할 UI (선택, 기본: spinner) |
+
+**동작**:
+- `loading === true` → `fallback` 표시
+- `userId === null` → 홈페이지로 리다이렉트
+- `userId` 있음 → `children` 렌더링
+
+#### SessionOwnershipGuard 컴포넌트
+
+**파일**: `src/components/SessionOwnershipGuard.tsx` (신규)
+
+발표자 페이지에서 세션 소유권을 검증하는 래퍼 컴포넌트입니다.
+
+**Props**:
+
+| Prop | 타입 | 설명 |
+|---|---|---|
+| `sessionId` | `string` | 검증할 세션 ID |
+| `children` | `ReactNode` | 소유자만 볼 수 있는 UI |
+| `fallback` | `ReactNode` | 권한 없을 때 표시할 UI |
+
+**동작**:
+- 세션 데이터 로드 후 `session.created_by === userId` 비교
+- 일치 → `children` 렌더링
+- 불일치 → 참가자 페이지로 리다이렉트
+
+### F-8. 상태 관리 흐름
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ App Load                                                │
+│                                                         │
+│  AuthProvider                                           │
+│    ├─ getSession() → 기존 세션 확인                     │
+│    │   ├─ 세션 있음 → user, userId 설정, loading=false  │
+│    │   └─ 세션 없음 → signInAnonymously()               │
+│    │       ├─ 성공 → user, userId 설정, loading=false    │
+│    │       └─ 실패 → 에러 표시, 재시도 버튼              │
+│    └─ onAuthStateChange() 등록                          │
+│        └─ 세션 만료/갱신 시 자동 처리                    │
+│                                                         │
+│  Page Render (loading=false 이후)                       │
+│    ├─ / (홈페이지)                                      │
+│    │   └─ "내가 만든 발표" 섹션 → GET /api/sessions/mine│
+│    ├─ /creator                                          │
+│    │   └─ 세션 생성 → POST /api/sessions/create         │
+│    │       (created_by = auth.uid())                     │
+│    ├─ /my-sessions                                      │
+│    │   └─ 세션 목록 → GET /api/sessions/mine            │
+│    └─ /session/[id]/presenter                           │
+│        └─ SessionOwnershipGuard                         │
+│            └─ created_by === userId 검증                 │
+└─────────────────────────────────────────────────────────┘
+```
+
+### F-9. 변경 파일 요약
+
+| 파일 | 유형 | 변경 내용 |
+|---|---|---|
+| `src/contexts/AuthProvider.tsx` | 신규 | Auth 상태 관리 컨텍스트 |
+| `src/components/AuthGuard.tsx` | 신규 | 인증 가드 컴포넌트 |
+| `src/components/SessionOwnershipGuard.tsx` | 신규 | 세션 소유권 검증 컴포넌트 |
+| `src/components/SessionCard.tsx` | 신규 | 세션 카드 UI 컴포넌트 |
+| `src/app/my-sessions/page.tsx` | 신규 | 내 세션 목록 페이지 |
+| `src/app/api/sessions/mine/route.ts` | 신규 | 내 세션 목록 API |
+| `src/app/layout.tsx` | 수정 | AuthProvider 래핑 추가 |
+| `src/app/page.tsx` | 수정 | "내가 만든 발표" 섹션 추가 |
+| `src/app/creator/page.tsx` | 수정 | 인증 상태 확인 로직 추가 |
+| `src/app/session/[sessionId]/presenter/page.tsx` | 수정 | 소유권 검증, participantId 변경 |
+| `src/app/api/sessions/create/route.ts` | 수정 | `created_by`를 `auth.uid()`로 변경 |
+| `src/app/api/sessions/[sessionId]/route.ts` | 수정 | `is_owner` 필드 추가 |
+| `src/app/api/slides/[sessionId]/route.ts` | 수정 | 소유자 권한 검증 추가 |
+| `src/types/index.ts` | 수정 | `SessionWithMeta` 타입 추가 |
+
+## 백엔드 기능 명세
+
+### 개요
+
+프론트엔드 명세(F-1 ~ F-9)에서 다룬 API 라우트의 서버 사이드 구현 상세, 데이터베이스 마이그레이션, RLS 정책, 인증 유틸리티, 그리고 기존 데이터 호환성 처리를 정의합니다.
+
+### B-1. 인증 유틸리티
+
+#### `src/lib/auth.ts` (신규)
+
+모든 API 라우트에서 공통으로 사용하는 인증 헬퍼 함수입니다.
+
+**함수 목록**:
+
+| 함수 | 시그니처 | 설명 |
+|---|---|---|
+| `getAuthenticatedUserId` | `(request: Request) => Promise<string \| null>` | 요청 헤더에서 JWT를 추출하여 Supabase Auth로 검증 후 UID 반환. 실패 시 `null` 반환 |
+| `requireAuth` | `(request: Request) => Promise<string>` | `getAuthenticatedUserId`와 동일하지만, 실패 시 `null` 대신 401 에러를 throw |
+
+**JWT 추출 방식**:
+
+```
+요청 흐름:
+  클라이언트 (supabase-js)
+    → Authorization 헤더에 Bearer {access_token} 자동 첨부
+    → 또는 쿠키에 Supabase auth token 저장
+
+서버 (API Route):
+  1. request.headers.get('Authorization')에서 Bearer 토큰 추출
+  2. supabase.auth.getUser(token)로 토큰 검증
+  3. 유효하면 user.id 반환
+  4. 만료/무효면 null 또는 에러
+```
+
+**주의**: Next.js API 라우트에서는 Supabase 클라이언트가 자동으로 쿠키를 읽지 않습니다. 클라이언트에서 API 호출 시 `supabase` 인스턴스를 통해 요청하면 Authorization 헤더가 자동으로 첨부됩니다. `fetch` 직접 호출 시에는 수동으로 헤더를 추가해야 합니다.
+
+#### `src/lib/supabase-server.ts` (신규)
+
+서버 사이드에서 사용하는 Supabase 클라이언트입니다. 기존 `src/lib/supabase.ts`는 클라이언트 전용으로 유지하고, 서버용 인스턴스를 별도로 생성합니다.
+
+**차이점**:
+
+| 항목 | `supabase.ts` (클라이언트) | `supabase-server.ts` (서버) |
+|---|---|---|
+| 용도 | 브라우저에서 실행 | API 라우트에서 실행 |
+| 세션 관리 | localStorage 자동 관리 | 요청 헤더에서 수동 추출 |
+| Auth 호출 | `signInAnonymously` 등 가능 | `getUser(token)` 검증만 수행 |
+| 인스턴스 생성 | `createClient(url, anonKey)` | `createClient(url, anonKey)` 동일하지만, 요청마다 새로 생성하지 않고 싱글톤으로 관리 |
+
+### B-2. 데이터베이스 마이그레이션
+
+#### 마이그레이션 파일: `supabase/migrations/YYYYMMDDHHMMSS_anonymous_auth.sql`
+
+하나의 마이그레이션 파일로 통합 실행합니다.
+
+#### B-2-1. `sessions.created_by` 컬럼 타입 변경
+
+```sql
+-- Step 1: 기존 "anonymous" 값을 NULL로 정리 (타입 변경 전)
+UPDATE public.sessions
+SET created_by = NULL
+WHERE created_by = 'anonymous';
+
+-- Step 2: 컬럼 타입 변경 (text → uuid)
+ALTER TABLE public.sessions
+  ALTER COLUMN created_by TYPE uuid USING NULL,
+  ALTER COLUMN created_by DROP NOT NULL;
+```
+
+**기존 데이터 처리 기준**:
+
+| `created_by` 값 | 처리 | 사유 |
+|---|---|---|
+| `"anonymous"` | `NULL`로 변경 | 기존 세션은 소유자 없음으로 표시 |
+| `NULL` | `NULL` 유지 | 이미 소유자 없음 |
+| 유효한 UUID | 유지 | 소셜 로그인 도입 후 생성된 세션 |
+
+> **마이그레이션 전 세션**: `created_by = NULL`인 세션은 누구나 발표자로 접근 가능(읽기 전용) 또는 첫 접속자에게 소유권 부여(B-2-3 참조)
+
+#### B-2-2. RLS 정책 교체
+
+기존 "모든 사용자 허용" 정책을 삭제하고 소유권 기반 정책으로 교체합니다.
+
+```sql
+-- ============================================================
+-- 기존 정책 삭제
+-- ============================================================
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.sessions;
+DROP POLICY IF EXISTS "Enable insert access for all users" ON public.sessions;
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.slides;
+DROP POLICY IF EXISTS "Enable insert access for all users" ON public.slides;
+DROP POLICY IF EXISTS "Enable update access for all users" ON public.slides;
+DROP POLICY IF EXISTS "Enable delete access for all users" ON public.slides;
+
+-- ============================================================
+-- sessions 테이블 정책
+-- ============================================================
+
+-- 읽기: 모든 인증 사용자 (참가자도 세션 정보를 읽어야 함)
+CREATE POLICY "Authenticated users can read sessions"
+  ON public.sessions FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- 생성: 인증된 사용자, created_by에 자신의 UID만 설정 가능
+CREATE POLICY "Users can create sessions with own id"
+  ON public.sessions FOR INSERT
+  TO authenticated
+  WITH CHECK (created_by = auth.uid());
+
+-- 수정: 세션 소유자만
+CREATE POLICY "Session owners can update own sessions"
+  ON public.sessions FOR UPDATE
+  TO authenticated
+  USING (created_by = auth.uid())
+  WITH CHECK (created_by = auth.uid());
+
+-- 삭제: 세션 소유자만
+CREATE POLICY "Session owners can delete own sessions"
+  ON public.sessions FOR DELETE
+  TO authenticated
+  USING (created_by = auth.uid());
+
+-- ============================================================
+-- slides 테이블 정책
+-- ============================================================
+
+-- 읽기: 모든 인증 사용자
+CREATE POLICY "Authenticated users can read slides"
+  ON public.slides FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- 생성/수정/삭제: 세션 소유자만
+CREATE POLICY "Session owners can insert slides"
+  ON public.slides FOR INSERT
+  TO authenticated
+  WITH CHECK (session_id IN (
+    SELECT id FROM public.sessions WHERE created_by = auth.uid()
+  ));
+
+CREATE POLICY "Session owners can update slides"
+  ON public.slides FOR UPDATE
+  TO authenticated
+  USING (session_id IN (
+    SELECT id FROM public.sessions WHERE created_by = auth.uid()
+  ));
+
+CREATE POLICY "Session owners can delete slides"
+  ON public.slides FOR DELETE
+  TO authenticated
+  USING (session_id IN (
+    SELECT id FROM public.sessions WHERE created_by = auth.uid()
+  ));
+
+-- ============================================================
+-- 참가자 관련 테이블 정책 (기존과 동일하게 모든 사용자 허용)
+-- ============================================================
+-- participants, votes, comments, hands_up, wordcloud_items, quiz_answers
+-- 은 기존 정책 유지. 변경 불필요.
+```
+
+**정책 적용 테이블별 요약**:
+
+| 테이블 | SELECT | INSERT | UPDATE | DELETE |
+|---|---|---|---|---|
+| `sessions` | 모든 인증 사용자 | 소유자만 (`created_by = auth.uid()`) | 소유자만 | 소유자만 |
+| `slides` | 모든 인증 사용자 | 소유자만 (서브쿼리) | 소유자만 | 소유자만 |
+| `participants` | 모든 인증 사용자 | 모든 인증 사용자 | 기존 유지 | 기존 유지 |
+| `votes` | 기존 유지 | 기존 유지 | 기존 유지 | - |
+| `comments` | 기존 유지 | 기존 유지 | 기존 유지 | 기존 유지 |
+| `hands_up` | 기존 유지 | 기존 유지 | 기존 유지 | - |
+| `wordcloud_items` | 기존 유지 | 기존 유지 | 기존 유지 | 기존 유지 |
+| `quiz_answers` | 기존 유지 | 기존 유지 | 기존 유지 | - |
+
+#### B-2-3. 기존 세션 소유권 처리
+
+마이그레이션 전에 생성된 세션(`created_by = NULL`)의 처리 방침:
+
+**방안 A: 소유권 포기 (읽기 전용)**
+
+```sql
+-- 마이그레이션 전 세션은 created_by가 NULL이므로
+-- UPDATE/DELETE 정책에서 자동으로 차단됨
+-- 프레젠테이션 진행(Realtime, slide:change broadcast)은 가능
+-- 슬라이드 편집은 불가
+```
+
+**방안 B: 첫 접속자에게 소유권 부여 (추천)**
+
+API 라우트에서 처리합니다. 발표자 페이지 접속 시 `created_by`가 `NULL`이면 현재 사용자를 소유자로 지정합니다.
+
+```
+발표자 페이지 접속:
+  1. GET /api/sessions/[sessionId]
+  2. session.created_by === null ?
+     ├─ null → PATCH /api/sessions/[sessionId]/claim
+     │         → UPDATE sessions SET created_by = auth.uid() WHERE id = sessionId AND created_by IS NULL
+     │         → 성공: 소유권 획득
+     │         → 실패 (이미 다른 사람이 선점): 참가자로 리다이렉트
+     └─ not null → 기존 소유권 검증 진행
+```
+
+이 방식은 동시성 문제를 방지하기 위해 `WHERE created_by IS NULL` 조건으로 원자적 업데이트를 보장합니다.
+
+#### B-2-4. 참가자 접근 보장
+
+RLS 정책 변경 후 참가자가 기존과 동일하게 세션에 참여할 수 있는지 확인이 필요합니다.
+
+| 참가자 동작 | 필요 권한 | 정책 상태 |
+|---|---|---|
+| 세션 정보 읽기 (제목, share_code) | `sessions SELECT` | 모든 인증 사용자 허용 |
+| 세션 코드로 검증 | `sessions SELECT` | 모든 인증 사용자 허용 |
+| 슬라이드 조회 | `slides SELECT` | 모든 인증 사용자 허용 |
+| 투표 제출 | `votes INSERT` | 기존 유지 |
+| 댓글 작성 | `comments INSERT` | 기존 유지 |
+| 손들기 | `hands_up INSERT/UPDATE` | 기존 유지 |
+| 워드클라우드 | `wordcloud_items INSERT/UPDATE` | 기존 유지 |
+| 퀴즈 답변 | `quiz_answers INSERT` | 기존 유지 |
+| 참가자 등록 | `participants INSERT` | 기존 유지 |
+
+> **핵심**: 참가자도 익명 인증 상태이므로 `authenticated` 역할을 가집니다. 기존 "모든 사용자" 정책을 "TO authenticated"로 변경하더라도 참가자 동작에는 영향이 없습니다.
+
+### B-3. API 라우트 상세 명세
+
+#### B-3-1. `GET /api/sessions/mine` (신규)
+
+**파일**: `src/app/api/sessions/mine/route.ts`
+
+**의사 코드**:
+
+```
+async function GET(request):
+  // 1. 인증
+  userId = requireAuth(request)  // 실패 시 401 반환
+
+  // 2. 쿼리
+  sessions = supabase
+    .from('sessions')
+    .select('id, title, share_code, created_at, updated_at, slides(count), participants(count)')
+    .eq('created_by', userId)
+    .order('created_at', { ascending: false })
+
+  // 3. 응답
+  return Response.json({
+    sessions: sessions.map(s => ({
+      id: s.id,
+      title: s.title,
+      share_code: s.share_code,
+      created_at: s.created_at,
+      updated_at: s.updated_at,
+      slide_count: s.slides[0].count,
+      participant_count: s.participants[0].count
+    }))
+  })
+```
+
+**에러 응답**:
+
+| 상태 코드 | 조건 | 응답 본문 |
+|---|---|---|
+| 200 | 성공 | `{ sessions: SessionWithMeta[] }` |
+| 401 | 인증되지 않음 | `{ error: "인증이 필요합니다." }` |
+| 500 | 서버 에러 | `{ error: "세션 목록을 불러오는데 실패했습니다." }` |
+
+#### B-3-2. `POST /api/sessions/create` (수정)
+
+**파일**: `src/app/api/sessions/create/route.ts`
+
+**현재 구현** (변경점):
+
+```
+기존 (line 33):
+  created_by: "anonymous"
+
+변경:
+  created_by: userId  // requireAuth(request)에서 획득
+```
+
+**의사 코드**:
+
+```
+async function POST(request):
+  // 1. 인증
+  userId = requireAuth(request)  // 실패 시 401 반환
+
+  // 2. 요청 본문 파싱
+  { title } = await request.json()
+  validate(title)  // 빈 문자열 검증
+
+  // 3. share_code 생성 (기존과 동일)
+  shareCode = generateShareCode()  // 6자리 영숫자
+
+  // 4. 세션 생성
+  session = supabase
+    .from('sessions')
+    .insert({ title, share_code: shareCode, created_by: userId })
+    .select()
+    .single()
+
+  // 5. 응답
+  return Response.json({ sessionId: session.id, shareCode: session.share_code })
+```
+
+**에러 응답**:
+
+| 상태 코드 | 조건 | 응답 본문 |
+|---|---|---|
+| 200 | 성공 | `{ sessionId, shareCode }` |
+| 400 | title 누락/빈 문자열 | `{ error: "제목을 입력해주세요." }` |
+| 401 | 인증되지 않음 | `{ error: "인증이 필요합니다." }` |
+| 500 | DB 에러 | `{ error: "세션 생성에 실패했습니다." }` |
+
+#### B-3-3. `PATCH /api/sessions/[sessionId]/claim` (신규)
+
+**파일**: `src/app/api/sessions/[sessionId]/claim/route.ts`
+
+마이그레이션 전 세션(`created_by = NULL`)의 소유권을 첫 접속자에게 부여합니다.
+
+**의사 코드**:
+
+```
+async function PATCH(request, { params }):
+  // 1. 인증
+  userId = requireAuth(request)
+
+  // 2. 원자적 소유권 획득
+  result = supabase
+    .from('sessions')
+    .update({ created_by: userId })
+    .eq('id', params.sessionId)
+    .is('created_by', null)  // WHERE created_by IS NULL
+    .select()
+    .single()
+
+  // 3. 결과
+  if (result.data):
+    return Response.json({ success: true, session: result.data })
+  else:
+    // 이미 소유자가 있거나 세션이 존재하지 않음
+    existingSession = supabase.from('sessions').select('created_by').eq('id', params.sessionId).single()
+    if (!existingSession):
+      return Response.json({ error: "세션을 찾을 수 없습니다." }, { status: 404 })
+    else:
+      return Response.json({ error: "이미 소유자가 있는 세션입니다." }, { status: 403 })
+```
+
+**동시성 안전성**: `WHERE created_by IS NULL` 조건으로 두 사용자가 동시에 claim 시 한 명만 성공합니다. Supabase RLS 정책과 결합하여 원자적 업데이트가 보장됩니다.
+
+**에러 응답**:
+
+| 상태 코드 | 조건 | 응답 본문 |
+|---|---|---|
+| 200 | 소유권 획득 성공 | `{ success: true, session }` |
+| 401 | 인증되지 않음 | `{ error: "인증이 필요합니다." }` |
+| 403 | 이미 소유자 있음 | `{ error: "이미 소유자가 있는 세션입니다." }` |
+| 404 | 세션 없음 | `{ error: "세션을 찾을 수 없습니다." }` |
+
+#### B-3-4. `GET /api/sessions/[sessionId]` (수정)
+
+**파일**: `src/app/api/sessions/[sessionId]/route.ts`
+
+**변경점**: 응답에 `is_owner` 필드 추가
+
+**의사 코드**:
+
+```
+async function GET(request, { params }):
+  // 1. 인증 (선택적 — 참가자도 조회 가능해야 함)
+  userId = getAuthenticatedUserId(request)  // null 허용
+
+  // 2. 세션 조회
+  session = supabase.from('sessions').select('*').eq('id', params.sessionId).single()
+
+  // 3. 응답
+  return Response.json({
+    ...session,
+    is_owner: userId !== null && session.created_by === userId
+  })
+```
+
+#### B-3-5. `DELETE /api/sessions/[sessionId]` (신규)
+
+**파일**: `src/app/api/sessions/[sessionId]/route.ts`
+
+내 세션 목록에서 세션 삭제 기능입니다. RLS 정책으로 소유자만 삭제 가능하지만, API 레벨에서도 검증합니다.
+
+**의사 코드**:
+
+```
+async function DELETE(request, { params }):
+  // 1. 인증
+  userId = requireAuth(request)
+
+  // 2. 소유권 확인
+  session = supabase.from('sessions').select('created_by').eq('id', params.sessionId).single()
+
+  if (session.created_by !== userId):
+    return Response.json({ error: "세션 소유자만 삭제할 수 있습니다." }, { status: 403 })
+
+  // 3. 삭제 (CASCADE로 slides, participants 등도 함께 삭제됨)
+  supabase.from('sessions').delete().eq('id', params.sessionId)
+
+  // 4. 응답
+  return Response.json({ success: true })
+```
+
+#### B-3-6. `POST /api/slides/[sessionId]` (수정)
+
+**파일**: `src/app/api/slides/[sessionId]/route.ts`
+
+**변경점**: 슬라이드 생성 시 세션 소유자 확인 추가
+
+**의사 코드**:
+
+```
+async function POST(request, { params }):
+  // 1. 인증
+  userId = requireAuth(request)
+
+  // 2. 세션 소유권 확인
+  session = supabase.from('sessions').select('created_by').eq('id', params.sessionId).single()
+
+  if (session.created_by !== userId):
+    return Response.json({ error: "세션 소유자만 슬라이드를 추가할 수 있습니다." }, { status: 403 })
+
+  // 3. 기존 슬라이드 생성 로직 (변경 없음)
+  ...
+```
+
+**PUT, DELETE도 동일한 소유권 검증 로직 적용**.
+
+#### B-3-7. 참가자 관련 API (변경 없음)
+
+다음 API 라우트는 인증이 필요하지 않거나, 기존 방식대로 동작합니다. 변경하지 않습니다.
+
+| 라우트 | 변경 여부 | 사유 |
+|---|---|---|
+| `POST /api/participants/join` | 변경 없음 | 참가자는 익명. 인증 필요하지 않음 |
+| `POST /api/votes/submit` | 변경 없음 | 참가자 기능. 인증 필요하지 않음 |
+| `POST /api/comments/submit` | 변경 없음 | 참가자 기능. 인증 필요하지 않음 |
+| `POST /api/hands-up/toggle` | 변경 없음 | 참가자 기능. 인증 필요하지 않음 |
+| `POST /api/wordcloud/submit` | 변경 없음 | 참가자 기능. 인증 필요하지 않음 |
+| `POST /api/quiz/submit` | 변경 없음 | 참가자 기능. 인증 필요하지 않음 |
+
+### B-4. 인증 요구사항 매트릭스
+
+모든 API 엔드포인트의 인증 요구사항을 정리합니다.
+
+| 엔드포인트 | 메서드 | 인증 필요 | 권한 검증 | 비고 |
+|---|---|---|---|---|
+| `/api/sessions/create` | POST | 필수 | 없음 (자동으로 자신 UID 설정) | |
+| `/api/sessions/mine` | GET | 필수 | 없음 (자동으로 자신 세션만 조회) | |
+| `/api/sessions/[id]` | GET | 선택 | `is_owner` 계산만 | 참가자도 조회 가능 |
+| `/api/sessions/[id]/claim` | PATCH | 필수 | `created_by IS NULL` 확인 | |
+| `/api/sessions/[id]` | DELETE | 필수 | `created_by = auth.uid()` | |
+| `/api/sessions/validate/[code]` | GET | 불필요 | 없음 | |
+| `/api/slides/[sessionId]` | GET | 불필요 | 없음 | 참가자도 조회 |
+| `/api/slides/[sessionId]` | POST | 필수 | 세션 소유자 확인 | |
+| `/api/slides/[sessionId]` | PUT | 필수 | 세션 소유자 확인 | |
+| `/api/slides/[sessionId]` | DELETE | 필수 | 세션 소유자 확인 | |
+| `/api/participants/join` | POST | 불필요 | 없음 | |
+| `/api/votes/submit` | POST | 불필요 | 없음 | |
+| `/api/votes/[slideId]` | GET | 불필요 | 없음 | |
+| `/api/comments/submit` | POST | 불필요 | 없음 | |
+| `/api/hands-up/toggle` | POST | 불필요 | 없음 | |
+| `/api/wordcloud/submit` | POST | 불필요 | 없음 | |
+| `/api/quiz/submit` | POST | 불필요 | 없음 | |
+
+### B-5. 기존 클라이언트-서버 인증 흐름
+
+현재 프로젝트는 클라이언트에서 `fetch`를 직접 호출하는 방식과 Supabase 클라이언트를 사용하는 방식이 혼재되어 있습니다. Anonymous Auth 도입 시 인증 토큰 전달 방식을 통일해야 합니다.
+
+#### 현재 방식 (`src/lib/api.ts` 기준)
+
+```
+클라이언트 → fetch('/api/sessions/create', { method: 'POST', body: ... })
+           → 서버 API 라우트에서 supabase 직접 호출
+           → Authorization 헤더 없음
+```
+
+#### 변경 후 방식
+
+```
+클라이언트 → supabase 인스턴스를 통한 fetch
+           → Authorization: Bearer {access_token} 자동 첨부
+           → 서버 API 라우트에서 토큰 추출 후 auth.uid() 확인
+```
+
+**구현 옵션**:
+
+| 옵션 | 방법 | 장단점 |
+|---|---|---|
+| **A. 수동 헤더 첨부** | `fetch` 호출 시 `supabase.auth.getSession()`에서 토큰을 가져와 Authorization 헤더에 수동 첨부 | 기존 `fetch` 패턴 유지. 매번 토큰 관리 코드 필요 |
+| **B. Supabase 클라이언트 활용** | `supabase.functions.invoke()` 또는 `supabase.from()` 사용 | 토큰 자동 관리. 하지만 기존 fetch 패턴 변경 필요 |
+| **C. 커스텀 fetch 래퍼** | `src/lib/api.ts`에 인증 헤더를 자동 첨부하는 래퍼 함수 추가 | 기존 패턴 유지 + 토큰 자동 관리. 추천 |
+
+**추천: 옵션 C (커스텀 fetch 래퍼)**
+
+`src/lib/api.ts`의 기존 함수들을 래핑하여 인증 헤더를 자동 첨부합니다.
+
+```
+기존:
+  export async function createSession(title) {
+    const res = await fetch('/api/sessions/create', { ... })
+    ...
+  }
+
+변경:
+  export async function createSession(title) {
+    const token = await getAccessToken()  // supabase.auth.getSession()에서 추출
+    const res = await fetch('/api/sessions/create', {
+      ...
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    ...
+  }
+```
+
+또는 공통 `authFetch` 유틸리티를 만들어 모든 API 호출에 적용:
+
+```
+async function authFetch(url, options = {}) {
+  const { data: { session } } = await supabase.auth.getSession()
+  const headers = {
+    ...options.headers,
+    ...(session ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+  }
+  return fetch(url, { ...options, headers })
+}
+```
+
+### B-6. 데이터베이스 인덱스
+
+소유권 기반 쿼리 성능을 위해 다음 인덱스를 추가합니다.
+
+```sql
+-- sessions 테이블: created_by로 내 세션 조회 시 사용
+CREATE INDEX IF NOT EXISTS idx_sessions_created_by
+  ON public.sessions (created_by);
+
+-- sessions 테이블: created_by + created_at 복합 인덱스 (정렬 포함 조회)
+CREATE INDEX IF NOT EXISTS idx_sessions_created_by_created_at
+  ON public.sessions (created_by, created_at DESC);
+```
+
+**기존 인덱스**: `share_code`는 `UNIQUE` 제약으로 자동 인덱스 생성됨. `id`는 `PRIMARY KEY`로 자동 인덱스 생성됨.
+
+### B-7. 마이그레이션 실행 순서
+
+데이터베이스 변경사항은 다음 순서로 적용해야 합니다.
+
+```
+1. Supabase 콘솔 → Authentication → Providers → Anonymous Sign-ins 활성화
+
+2. 마이그레이션 SQL 실행 (단일 트랜잭션 권장):
+   a. sessions.created_by NULL 정리
+   b. sessions.created_by 타입 변경 (text → uuid)
+   c. 기존 RLS 정책 삭제
+   d. 신규 RLS 정책 생성
+   e. 인덱스 생성
+
+3. 백엔드 코드 배포:
+   a. src/lib/auth.ts 추가
+   b. src/lib/supabase-server.ts 추가
+   c. API 라우트 수정 (create, mine, claim, slides)
+   d. src/lib/api.ts에 authFetch 래퍼 추가
+
+4. 프론트엔드 코드 배포:
+   a. AuthProvider 추가
+   b. layout.tsx에 AuthProvider 통합
+   c. 홈페이지, 발표자 페이지, 세션 생성 페이지 수정
+   d. 신규 페이지 (my-sessions) 추가
+
+5. 검증:
+   a. 익명 로그인 → 세션 생성 → 브라우저 종료 → 재접속 → 세션 목록 확인
+   b. 마이그레이션 전 세션 접속 → 소유권 claim → 정상 동작 확인
+   c. 참가자 세션 참여 → 투표/댓글/퀴즈 정상 동작 확인
+   d. 타인의 세션 ID로 발표자 접속 시도 → 403 확인
+```
+
+### B-8. 백엔드 변경 파일 요약
+
+| 파일 | 유형 | 변경 내용 |
+|---|---|---|
+| `supabase/migrations/..._anonymous_auth.sql` | 신규 | 전체 마이그레이션 SQL |
+| `src/lib/auth.ts` | 신규 | `getAuthenticatedUserId`, `requireAuth` 함수 |
+| `src/lib/supabase-server.ts` | 신규 | 서버 사이드 Supabase 클라이언트 |
+| `src/app/api/sessions/mine/route.ts` | 신규 | `GET` 내 세션 목록 API |
+| `src/app/api/sessions/[sessionId]/claim/route.ts` | 신규 | `PATCH` 세션 소유권 획득 API |
+| `src/app/api/sessions/create/route.ts` | 수정 | `created_by`를 `auth.uid()`로 변경 |
+| `src/app/api/sessions/[sessionId]/route.ts` | 수정 | `GET`: `is_owner` 추가. `DELETE`: 소유권 검증 추가 |
+| `src/app/api/slides/[sessionId]/route.ts` | 수정 | `POST/PUT/DELETE` 소유권 검증 추가 |
+| `src/lib/api.ts` | 수정 | `authFetch` 래퍼 추가, 기존 함수들에 인증 헤더 첨부 |
+
 ## 고려사항
 
 ### 보안
