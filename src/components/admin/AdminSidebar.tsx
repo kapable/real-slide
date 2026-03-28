@@ -138,7 +138,7 @@ function AdminSidebarComponent() {
           </Link>
           <button
             onClick={async () => {
-              await signOut();
+              if (signOut) await signOut();
               router.push("/");
             }}
             className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all w-full"
@@ -149,7 +149,7 @@ function AdminSidebarComponent() {
         </div>
       </>
     ),
-    [navigation, pathname, handleNavClick, t.admin.sidebar.backToApp]
+    [navigation, pathname, handleNavClick, t.admin.sidebar.backToApp, signOut, router]
   );
 
   return (
