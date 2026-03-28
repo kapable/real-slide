@@ -953,6 +953,229 @@ Kakao 로그인을 추가할 때 필요한 작업:
 3. 프론트엔드에 Kakao 로그인 버튼 추가 (`signInWithOAuth({ provider: 'kakao' })`)
 4. 기존 Google 로그인 코드와 공유 (동일한 `auth.uid()` 기반)
 
+## /my-sessions 페이지 기능 명세
+
+### 개요
+
+로그인한 모더레이터가 자신이 만든 발표 세션 목록을 조회하고 관리하는 전용 페이지입니다. Google 로그인 후 리다이렉트되는 기본 도착 페이지입니다.
+
+### 프론트엔드
+
+#### 라우트
+
+- **경로**: `/my-sessions`
+- **인증**: 필수 (미로그인 시 `/login?next=/my-sessions` 리다이렉트)
+- **데이터**: `GET /api/sessions/mine`
+
+#### 페이지 레이아웃
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│ [Header]                                                     │
+│  logo | "지금 시작하기" | "세션 참여하기" | [아바타 ▼]        │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│  내가 만든 발표                              [새 발표 만들기] │
+│                                                              │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │  📊 3월 수학 수업                                     │  │
+│  │     코드: ABC123                                      │  │
+│  │     12개 슬라이드 · 28명 참여 · 2026년 3월 27일       │  │
+│  │                                    [발표 시작] [삭제]  │  │
+│  └────────────────────────────────────────────────────────┘  │
+│                                                              │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │  📊 2월 과학 발표                                     │  │
+│  │     코드: DEF456                                      │  │
+│  │     8개 슬라이드 · 15명 참여 · 2026년 2월 15일        │  │
+│  │                                    [발표 시작] [삭제]  │  │
+│  └────────────────────────────────────────────────────────┘  │
+│                                                              │
+├──────────────────────────────────────────────────────────────┤
+│ [Footer]                                                     │
+└──────────────────────────────────────────────────────────────┘
+```
+
+#### 빈 상태 (세션이 없을 때)
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                                                              │
+│              📊                                              │
+│     아직 만든 발표가 없습니다                                │
+│     새 발표를 만들어보세요!                                  │
+│                                                              │
+│          [ + 새 발표 만들기 ]                                │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
+```
+
+#### 세션 카드 상세
+
+각 세션 카드에 표시되는 정보와 인터랙션:
+
+| 영역 | 항목 | 데이터 소스 | 인터랙션 |
+|---|---|---|---|
+| 제목 | 세션 제목 | `session.title` | 카드 전체 클릭 시 발표자 페이지 이동 |
+| 공유 코드 | 6자리 코드 | `session.share_code` | 클릭 시 클립보드 복사 |
+| 슬라이드 수 | N개 슬라이드 | `session.slide_count` | - |
+| 참가자 수 | N명 참여 | `session.participant_count` | - |
+| 생성일 | 날짜 | `session.created_at` | 상대 시간 표시 (예: "3월 27일") |
+| 발표 시작 버튼 | - | - | 클릭 시 `/session/{id}/presenter` 이동 |
+| 삭제 버튼 | - | - | 클릭 시 삭제 확인 모달 |
+
+#### 삭제 확인 모달
+
+```
+┌──────────────────────────────────────┐
+│  "3월 수학 수업"을 삭제하시겠습니까?  │
+│                                      │
+│  이 작업은 되돌릴 수 없습니다.        │
+│  모든 슬라이드와 참가자 데이터가      │
+│  함께 삭제됩니다.                     │
+│                                      │
+│       [취소]    [삭제]               │
+└──────────────────────────────────────┘
+```
+
+#### 상태별 UI
+
+| 상태 | 표시 |
+|---|---|
+| 로딩 중 (초기) | 스켈레톤 카드 3개 |
+| 로딩 중 (삭제) | 삭제 버튼에 spinner, 카드 opacity 낮춤 |
+| 데이터 있음 | 세션 카드 리스트 |
+| 빈 상태 | 빈 상태 안내 + "새 발표 만들기" 버튼 |
+| 에러 | "세션 목록을 불러올 수 없습니다" + 재시도 버튼 |
+| 미로그인 | `/login?next=/my-sessions`로 리다이렉트 |
+
+#### 컴포넌트 구조
+
+```
+MySessionsPage
+  ├── Header (공통)
+  ├── PageHeader
+  │   ├── "내가 만든 발표" 제목
+  │   └── "새 발표 만들기" 버튼 → /creator
+  ├── SessionList
+  │   ├── LoadingSkeleton (loading 시)
+  │   ├── EmptyState (데이터 없을 시)
+  │   └── SessionCard[] (데이터 있을 시)
+  │       ├── 세션 정보 (제목, 코드, 통계, 날짜)
+  │       ├── "발표 시작" 버튼
+  │       └── "삭제" 버튼
+  ├── DeleteConfirmModal
+  └── Footer (공통)
+```
+
+#### 데이터 흐름
+
+```
+1. 페이지 마운트
+   └─ useAuth() → loading 완료 대기
+       ├─ user === null → router.replace('/login?next=/my-sessions')
+       └─ user !== null → getMySessions() 호출
+            └─ GET /api/sessions/mine (Authorization: Bearer {token})
+                 ├─ 200 → sessions 상태 설정 → 카드 리스트 렌더링
+                 ├─ 401 → 세션 만료 → /login 리다이렉트
+                 └─ 500 → 에러 상태 설정 → 재시도 버튼 표시
+
+2. 발표 시작 클릭
+   └─ router.push('/session/{id}/presenter')
+
+3. 공유 코드 복사 클릭
+   └─ navigator.clipboard.writeText(shareCode)
+      → "복사됨!" 토스트 표시 (2초 후 사라짐)
+
+4. 삭제 클릭
+   └─ 삭제 확인 모달 열기
+       └─ "삭제" 확인 → authFetch('/api/sessions/{id}', { method: 'DELETE' })
+            ├─ 200 → sessions 상태에서 해당 세션 제거
+            └─ 403 → "삭제 권한이 없습니다" 에러 표시
+```
+
+### 백엔드
+
+#### `GET /api/sessions/mine`
+
+이미 구현됨. 응답 스키마 재확인:
+
+**요청**:
+- 메서드: `GET`
+- 인증: 필수 (`requireAuth`)
+- 헤더: `Authorization: Bearer {access_token}`
+
+**성공 응답 (200)**:
+
+```typescript
+[
+  {
+    id: string;           // 세션 UUID
+    title: string;        // 세션 제목
+    share_code: string;   // 6자리 공유 코드
+    created_at: string;   // ISO 날짜
+    slide_count: number;  // 슬라이드 수 (slides 테이블 COUNT)
+    participant_count: number; // 참가자 수 (participants 테이블 COUNT)
+  }
+]
+```
+
+**에러 응답**:
+
+| 상태 코드 | 조건 | 본문 |
+|---|---|---|
+| 401 | 미인증 | `{ error: "인증이 필요합니다" }` |
+| 500 | DB 에러 | `{ error: "..." }` |
+
+**Supabase 쿼리**:
+
+```sql
+SELECT s.*,
+  (SELECT COUNT(*) FROM slides WHERE session_id = s.id) AS slide_count,
+  (SELECT COUNT(*) FROM participants WHERE session_id = s.id) AS participant_count
+FROM sessions s
+WHERE s.created_by = $userId
+ORDER BY s.created_at DESC;
+```
+
+#### `DELETE /api/sessions/[sessionId]`
+
+**파일**: `src/app/api/sessions/[sessionId]/route.ts` (수정)
+
+**요청**:
+- 메서드: `DELETE`
+- 인증: 필수 (`requireAuth`)
+- 헤더: `Authorization: Bearer {access_token}`
+
+**의사 코드**:
+
+```
+1. requireAuth(request) → userId
+2. SELECT created_by FROM sessions WHERE id = sessionId
+3. 세션 없음 → 404
+4. created_by !== userId → 403
+5. DELETE FROM sessions WHERE id = sessionId
+   (CASCADE: slides, participants, votes, comments 등 자동 삭제)
+6. 200 { success: true }
+```
+
+**에러 응답**:
+
+| 상태 코드 | 조건 | 본문 |
+|---|---|---|
+| 401 | 미인증 | `{ error: "인증이 필요합니다" }` |
+| 403 | 비소유자 | `{ error: "세션 소유자만 삭제할 수 있습니다" }` |
+| 404 | 세션 없음 | `{ error: "세션을 찾을 수 없습니다" }` |
+| 500 | DB 에러 | `{ error: "..." }` |
+
+#### 변경 파일 요약
+
+| 파일 | 유형 | 변경 내용 |
+|---|---|---|
+| `src/app/my-sessions/page.tsx` | 신규 | 내 세션 목록 페이지 |
+| `src/app/api/sessions/[sessionId]/route.ts` | 수정 | `DELETE` 핸들러 추가 (소유권 검증) |
+| `src/lib/api.ts` | 수정 | `deleteSession(id)` 함수 추가 |
+
 ## E2E 테스트 목록
 
 ### 프론트엔드 테스트
