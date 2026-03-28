@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Presentation, Users, Zap, MessageSquare, Clock, Loader2 } from "lucide-react";
+import { Presentation, Users, Zap, MessageSquare, Clock, Loader2, Shield, LogIn } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getMySessions } from "@/lib/api";
 import type { SessionWithMeta } from "@/types";
@@ -80,6 +80,8 @@ function MySessionsSection() {
 }
 
 export default function Home() {
+  const { user, loading: authLoading } = useAuth();
+
   return (
     <div className="min-h-screen flex flex-col bg-background selection:bg-primary/20">
       {/* Header */}
@@ -98,6 +100,21 @@ export default function Home() {
             <Button asChild variant="outline" size="sm">
               <Link href="/join">세션 참여하기</Link>
             </Button>
+            {!authLoading && user ? (
+              <Button asChild variant="outline" size="sm" className="gap-1.5">
+                <Link href="/admin">
+                  <Shield className="h-4 w-4" />
+                  관리
+                </Link>
+              </Button>
+            ) : !authLoading ? (
+              <Button asChild variant="ghost" size="sm" className="gap-1.5">
+                <Link href="/login">
+                  <LogIn className="h-4 w-4" />
+                  로그인
+                </Link>
+              </Button>
+            ) : null}
           </nav>
         </div>
       </header>
