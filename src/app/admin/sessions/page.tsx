@@ -50,6 +50,8 @@ import {
   ArrowDown,
   Pencil,
   Play,
+  Power,
+  PowerOff,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
@@ -92,6 +94,7 @@ export default function SessionsPage() {
   const [editSession, setEditSession] = useState<Session | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isTogglingAll, setIsTogglingAll] = useState(false);
 
   const fetchSessions = useCallback(async () => {
     setIsLoading(true);
@@ -212,6 +215,27 @@ export default function SessionsPage() {
     setEditTitle(session.title);
   }, []);
 
+  const handleToggleAll = useCallback(async (isActive: boolean) => {
+    setIsTogglingAll(true);
+    try {
+      const res = await fetch("/api/admin/sessions", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_active: isActive }),
+      });
+      if (res.ok) {
+        toast({ title: isActive ? "모든 세션이 활성화되었습니다" : "모든 세션이 비활성화되었습니다" });
+        fetchSessions();
+      } else {
+        throw new Error("Toggle all failed");
+      }
+    } catch {
+      toast({ variant: "destructive", title: "일괄 상태 변경에 실패했습니다" });
+    } finally {
+      setIsTogglingAll(false);
+    }
+  }, [toast, fetchSessions]);
+
   const handleSaveEdit = useCallback(async () => {
     if (!editSession || !editTitle.trim()) return;
 
@@ -297,8 +321,30 @@ export default function SessionsPage() {
 
       {/* Table */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex-row items-center justify-between space-y-0">
           <CardTitle className="text-lg">{t.admin.sessions.sessionList}</CardTitle>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              disabled={isTogglingAll || sessions.length === 0}
+              onClick={() => handleToggleAll(true)}
+            >
+              {isTogglingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Power className="h-3.5 w-3.5" />}
+              모두 활성화
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              disabled={isTogglingAll || sessions.length === 0}
+              onClick={() => handleToggleAll(false)}
+            >
+              {isTogglingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PowerOff className="h-3.5 w-3.5" />}
+              모두 비활성화
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (

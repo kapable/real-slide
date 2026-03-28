@@ -72,3 +72,30 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const { is_active } = await request.json();
+
+    if (typeof is_active !== "boolean") {
+      return NextResponse.json({ error: "is_active boolean is required" }, { status: 400 });
+    }
+
+    const { error } = await supabase
+      .from("sessions")
+      .update({ is_active })
+      .neq("is_active", is_active);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, is_active });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Server error" },
+      { status: 500 }
+    );
+  }
+}
