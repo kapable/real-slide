@@ -1354,6 +1354,51 @@ export interface SessionWithMeta {
 | B-18 | 참가자 슬라이드 조회 | `GET /api/slides/{sessionId}` + 참가자 토큰 | 200 |
 | B-19 | 내 세션에 슬라이드/참가자 수 포함 | `GET /api/sessions/mine` | `slide_count`, `participant_count` 정확 |
 
+## 세션 활성화/비활성화 E2E 테스트 목록
+
+### 프론트엔드 테스트
+
+| # | 테스트 케이스 | 전제 조건 | 검증 항목 |
+|---|---|---|---|
+| T-1 | 활성 세션 카드 UI | 로그인됨, 활성 세션 | "활성" 녹색 배지 표시, Switch ON 상태, 카드 불투명도 정상 |
+| T-2 | 비활성 세션 카드 UI | 로그인됨, 비활성 세션 | "비활성" 회색 배지 표시, Switch OFF 상태, 카드 opacity 낮아짐 |
+| T-3 | Switch 토글 클릭 → 활성→비활성 | 로그인됨, 활성 세션 | API 호출 후 배지 "비활성"으로 변경, Switch OFF, 카드 흐려짐 |
+| T-4 | Switch 토글 클릭 → 비활성→활성 | 로그인됨, 비활성 세션 | API 호출 후 배지 "활성"으로 변경, Switch ON, 카드 정상 투명도 |
+| T-5 | 토글 중 로딩 상태 | 로그인됨, 느린 네트워크 | Switch 클릭 중 비활성화 (disabled), 중복 클릭 방지 |
+| T-6 | 토글 API 실패 시 상태 롤백 | 로그인됨, 네트워크 오류 | Switch가 이전 상태로 복원, 에러 토스트 표시 |
+| T-7 | 비활성 세션 "발표 시작" 버튼 | 로그인됨, 비활성 세션 | 버튼 클릭 시 발표자 페이지 정상 진입 (관리 목적 허용) |
+| T-8 | 공유 코드 복사 | 로그인됨, 임의 세션 | 클릭 시 클립보드 복사, "복사됨!" 토스트 |
+| T-9 | 내 세션 목록 `is_active` 필드 표시 | 로그인됨, 세션 2개 이상 | 각 카드에 활성/비활성 상태 정확 표시 |
+| T-10 | 비활성 세션 공유 코드로 참가 시도 | 세션 비활성 | 참가 페이지에서 "비활성화된 세션입니다" 에러 표시 |
+| T-11 | 활성 세션 공유 코드로 참가 | 세션 활성 | 정상적으로 참가 페이지 진입 |
+
+### 백엔드 테스트
+
+| # | 테스트 케이스 | 요청 | 기대 응답 |
+|---|---|---|---|
+| TB-1 | 소유자 세션 활성→비활성 토글 | `PATCH /api/sessions/{id}/toggle-active` + 소유자 토큰 | 200, `{ is_active: false }` |
+| TB-2 | 소유자 세션 비활성→활성 토글 | `PATCH /api/sessions/{id}/toggle-active` + 소유자 토큰 | 200, `{ is_active: true }` |
+| TB-3 | 비소유자 토글 시도 | `PATCH /api/sessions/{id}/toggle-active` + 타인 토큰 | 403 |
+| TB-4 | 미인증 토글 시도 | `PATCH /api/sessions/{id}/toggle-active` (Authorization 없음) | 401 |
+| TB-5 | 존재하지 않는 세션 토글 | `PATCH /api/sessions/{id}/toggle-active` + 소유자 토큰 (잘못된 id) | 404 |
+| TB-6 | 내 세션 조회 `is_active` 포함 | `GET /api/sessions/mine` + Bearer token | 200, 각 세션에 `is_active` 필드 포함 |
+| TB-7 | 활성 세션 공유 코드 유효성 검증 | `GET /api/sessions/validate/{code}` (활성 코드) | 200, `{ sessionId }` |
+| TB-8 | 비활성 세션 공유 코드 유효성 검증 | `GET /api/sessions/validate/{code}` (비활성 코드) | 403, `{ error: "비활성화된 세션입니다" }` |
+| TB-9 | 존재하지 않는 코드 유효성 검증 | `GET /api/sessions/validate/{code}` (없는 코드) | 404 |
+| TB-10 | 토글 후 DB 값 확인 | 토글 API 호출 후 `SELECT is_active` | DB 값이 응답과 일치 |
+| TB-11 | 연속 토글 (2회) | 활성→비활성→활성 순서대로 토글 | 최종 `is_active: true`, 중간에 `false` |
+
+### 테스트 자동화 가능 여부
+
+| # | 자동화 가능 | 비고 |
+|---|---|---|
+| T-1 ~ T-2 | 가능 (수동 필요) | Google OAuth 로그인 세션 필요 |
+| T-3 ~ T-6 | 가능 (수동 필요) | Google OAuth 로그인 세션 필요 |
+| T-7 ~ T-8 | 가능 (수동 필요) | Google OAuth 로그인 세션 필요 |
+| T-9 ~ T-11 | 가능 (수동 필요) | Google OAuth 로그인 세션 필요 |
+| TB-1 ~ TB-5 | 가능 (수동 필요) | Google OAuth Bearer 토큰 필요 |
+| TB-6 ~ TB-11 | 가능 (수동 필요) | Google OAuth Bearer 토큰 필요 |
+
 ## E2E 테스트 결과 (2026-03-28)
 
 ### 테스트 환경
