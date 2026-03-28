@@ -169,6 +169,31 @@ src/
 - [ ] 성능 최적화
 - [ ] Vercel 배포
 
+### Phase 5 ❌ 예정 — 모더레이터 인증
+
+- [ ] Supabase Anonymous Auth 도입
+- [ ] `sessions.created_by` 컬럼 `text` → `uuid` 변경
+- [ ] `useAuth` 훅 구현 (익명 세션 자동 생성/복원)
+- [ ] 발표자 권한 검증 (`created_by = auth.uid()`)
+- [ ] `/my-sessions` 페이지 (내 세션 목록)
+- [ ] `/api/sessions/mine` API
+- [ ] RLS 정책 소유권 기반으로 업데이트
+- [ ] 세션 재접속 UX (발표 전날 준비 → 다음 날 접속)
+
+> 상세 가이드: [AUTH_GUIDE.md](./AUTH_GUIDE.md)
+
+### Phase 6 ❌ 예정 — 소셜 로그인
+
+- [ ] Google OAuth 연동
+- [ ] Kakao OAuth 연동
+- [ ] 익명 계정 → 소셜 계정 연결 (`linkIdentity`)
+- [ ] 로그인 UI 추가 (소셜 로그인 버튼)
+- [ ] 세션 소유권 이관 (공유 코드 복구)
+- [ ] 사용자 프로필 표시 (이름, 아바타)
+- [ ] 익명 계정 자동 정리 Cron job
+
+> 마이그레이션 가이드: [AUTH_GUIDE.md - 5단계](./AUTH_GUIDE.md#5단계-소셜-로그인-마이그레이션-향후)
+
 ## 문제 해결
 
 ### 문제: 500 에러가 계속 발생합니다
