@@ -73,6 +73,16 @@ export const claimSession = async (sessionId: string): Promise<void> => {
   if (!response.ok) throw new Error("세션 소유권 획득 실패");
 };
 
+export const deleteSession = async (sessionId: string): Promise<void> => {
+  const response = await authFetch(`/api/sessions/${sessionId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({ error: "삭제 실패" }));
+    throw new Error(data.error || "세션 삭제 실패");
+  }
+};
+
 // Slide 관리
 export const getSlides = async (sessionId: string) => {
   const { data, error } = await supabase
