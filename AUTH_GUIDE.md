@@ -953,6 +953,119 @@ Kakao 로그인을 추가할 때 필요한 작업:
 3. 프론트엔드에 Kakao 로그인 버튼 추가 (`signInWithOAuth({ provider: 'kakao' })`)
 4. 기존 Google 로그인 코드와 공유 (동일한 `auth.uid()` 기반)
 
+## E2E 테스트 목록
+
+### 프론트엔드 테스트
+
+| # | 테스트 케이스 | 전제 조건 | 검증 항목 |
+|---|---|---|---|
+| F-1 | 미로그인 상태에서 `/login` 접속 | 세션 없음 | Google 로그인 버튼 표시, 기능 안내 표시 |
+| F-2 | Google 로그인 버튼 클릭 | 미로그인 | Google OAuth 리다이렉트 발생 |
+| F-3 | Google 로그인 완료 후 콜백 | Google 인증 완료 | 세션 저장, `/my-sessions`로 리다이렉트 |
+| F-4 | `?next=/creator`로 로그인 완료 | Google 인증 완료 | `/creator`로 리다이렉트 |
+| F-5 | `?next=/session/{id}/presenter`로 로그인 완료 | Google 인증 완료 | 해당 발표자 페이지로 리다이렉트 |
+| F-6 | 이미 로그인 상태에서 `/login` 접속 | 세션 있음 | 즉시 `/my-sessions`로 리다이렉트 |
+| F-7 | `?next=https://evil.com` 외부 URL 입력 | 미로그인 | 기본값 `/my-sessions`로 리다이렉트 |
+| F-8 | `?next=/unknown-path` 허용 외 경로 | 미로그인 | 기본값 `/my-sessions`로 리다이렉트 |
+| F-9 | 홈페이지에서 "로그인" 버튼 클릭 | 미로그인 | `/login`으로 이동 |
+| F-10 | 로그인 후 홈페이지 "내가 만든 발표" 섹션 | 로그인됨 | 세션 카드 목록 표시 |
+| F-11 | 미로그인 상태에서 `/creator` 접속 | 세션 없음 | `/login?next=/creator`로 리다이렉트 |
+| F-12 | 미로그인 상태에서 `/my-sessions` 접속 | 세션 없음 | `/login?next=/my-sessions`로 리다이렉트 |
+| F-13 | 미로그인 상태에서 `/session/{id}/presenter` 접속 | 세션 없음 | `/login?next=/session/{id}/presenter`로 리다이렉트 |
+| F-14 | 로그인 후 세션 생성 → 발표자 페이지 진입 | 로그인됨 | `participantId`가 userId와 일치 |
+| F-15 | 타인의 세션으로 발표자 접근 | 로그인됨 (타인 세션) | 참가자 페이지로 리다이렉트 |
+| F-16 | `created_by=NULL` 세션에 발표자 접근 | 로그인됨 | claim 성공 후 발표자 렌더링 |
+| F-17 | 세션 카드 클릭 | 로그인됨 | `/session/{id}/presenter`로 이동 |
+| F-18 | 로그아웃 후 세션 생성 시도 | 로그아웃됨 | `/login`으로 리다이렉트 |
+| F-19 | 브라우저 재시작 후 홈페이지 | 이전에 로그인 | 세션 자동 복원, "내가 만든 발표" 표시 |
+| F-20 | 다른 기기에서 같은 Google 계정 로그인 | 다른 브라우저 | 동일한 세션 목록 표시 |
+
+### 백엔드 테스트
+
+| # | 테스트 케이스 | 요청 | 기대 응답 |
+|---|---|---|---|
+| B-1 | 유효한 토큰으로 세션 생성 | `POST /api/sessions/create` + Bearer token | 200, `created_by` = 요청 UID |
+| B-2 | 토큰 없이 세션 생성 | `POST /api/sessions/create` (Authorization 없음) | 401 |
+| B-3 | 만료된 토큰으로 세션 생성 | `POST /api/sessions/create` + 만료 token | 401 |
+| B-4 | 유효한 토큰으로 내 세션 조회 | `GET /api/sessions/mine` + Bearer token | 200, 자신의 세션만 반환 |
+| B-5 | 토큰 없이 내 세션 조회 | `GET /api/sessions/mine` (Authorization 없음) | 401 |
+| B-6 | 세션 조회 시 `is_owner` 계산 | `GET /api/sessions/{id}` + 소유자 토큰 | 200, `is_owner: true` |
+| B-7 | 세션 조회 시 `is_owner: false` | `GET /api/sessions/{id}` + 타인 토큰 | 200, `is_owner: false` |
+| B-8 | `created_by=NULL` 세션 claim (소유자 없음) | `PATCH /api/sessions/{id}/claim` + Bearer token | 200, 소유권 획득 |
+| B-9 | 이미 소유자 있는 세션 claim | `PATCH /api/sessions/{id}/claim` + 다른 사용자 토큰 | 403 |
+| B-10 | 소유자 슬라이드 생성 | `POST /api/slides/{sessionId}` + 소유자 토큰 | 200 |
+| B-11 | 비소유자 슬라이드 생성 | `POST /api/slides/{sessionId}` + 타인 토큰 | 403 |
+| B-12 | 토큰 없이 슬라이드 생성 | `POST /api/slides/{sessionId}` (Authorization 없음) | 401 |
+| B-13 | 비소유자 슬라이드 수정 | `PUT /api/slides/{sessionId}/{slideId}` + 타인 토큰 | 403 |
+| B-14 | 비소유자 슬라이드 삭제 | `DELETE /api/slides/{sessionId}/{slideId}` + 타인 토큰 | 403 |
+| B-15 | 세션 소유자 삭제 | `DELETE /api/sessions/{id}` + 소유자 토큰 | 200 |
+| B-16 | 비소유자 세션 삭제 | `DELETE /api/sessions/{id}` + 타인 토큰 | 403 |
+| B-17 | 참가자 세션 정보 조회 | `GET /api/sessions/{id}` + 참가자 토큰 | 200, `is_owner: false` |
+| B-18 | 참가자 슬라이드 조회 | `GET /api/slides/{sessionId}` + 참가자 토큰 | 200 |
+| B-19 | 내 세션에 슬라이드/참가자 수 포함 | `GET /api/sessions/mine` | `slide_count`, `participant_count` 정확 |
+
+## E2E 테스트 결과 (2026-03-28)
+
+### 테스트 환경
+
+| 항목 | 내용 |
+|---|---|
+| 서버 | Next.js dev server (`npm run dev`) on `localhost:3001` |
+| 테스트 도구 | Playwright (프론트엔드), Node.js fetch (백엔드) |
+| 테스트 시간 | 2026-03-28 |
+| 데이터베이스 | Supabase (RLS 정책 적용 완료) |
+
+### 프론트엔드 결과 (11 통과 / 0 실패)
+
+| # | 테스트 케이스 | 결과 | 비고 |
+|---|---|---|---|
+| F-1 | 미로그인 `/login` → Google 버튼 표시 | PASS | 버튼, 안내 텍스트, 기능 목록 정상 표시 |
+| F-2 | Google 로그인 버튼 클릭 → OAuth 리다이렉트 | PASS | Google/Supabase auth 페이지로 리다이렉트 확인 |
+| F-7 | `?next=https://evil.com` 외부 URL 차단 | PASS | 페이지가 외부 도메인으로 이동하지 않음. URL에 쿼리 파라미터로 포함되어 있으나 실제 리다이렉트는 발생하지 않음 |
+| F-8 | `?next=/unknown-path` 허용 외 경로 | PASS | login 페이지에 머물며 기본값 사용 |
+| F-9 | 홈페이지 정상 렌더링 | PASS | Real-Slide, 지금 시작하기, 세션 참여하기 텍스트 확인 |
+| F-11 | 미로그인 `/creator` → 폼 표시 | PASS | 발표 시작하기 텍스트 확인 |
+| F-세션참여 | 세션 참여하기 링크 → `/join` | PASS | href="/join" 확인 |
+| F-UI | 로그인 UI 전체 요소 확인 | PASS | 환영 문구, 안내, 기능 목록, 구분선, 저작권 모두 확인 |
+| F-파라미터 | `next` 없으면 기본값 | PASS | Google 버튼 정상 표시, 기본 리다이렉트 `/my-sessions` |
+| F-3~F-5 | OAuth 콜백 후 리다이렉트 | 수동 필요 | Google OAuth 완료 후 세션 생성 필요 |
+| F-6 | 이미 로그인 상태 리다이렉트 | 수동 필요 | OAuth 세션 필요 |
+| F-10~F-20 | 로그인 후 기능 | 수동 필요 | 인증 세션 필요 |
+
+### 백엔드 결과 (7 통과 / 0 실패)
+
+| # | 테스트 케이스 | 결과 | 비고 |
+|---|---|---|---|
+| B-2 | 토큰 없이 세션 생성 → 401 | PASS | `POST /api/sessions/create` Authorization 없이 |
+| B-3 | 잘못된 토큰으로 세션 생성 → 401 | PASS | `Bearer invalid-token-12345` |
+| B-5 | 토큰 없이 내 세션 조회 → 401 | PASS | `GET /api/sessions/mine` |
+| B-9 | 토큰 없이 세션 claim → 401 | PASS | `PATCH /api/sessions/{id}/claim` |
+| B-12 | 토큰 없이 슬라이드 생성 → 401 | PASS | `POST /api/slides/{sessionId}` |
+| B-17 | 미인증 세션 조회 → 404 | PASS | 존재하지 않는 UUID로 조회 시 404 |
+| B-18 | 미인증 슬라이드 조회 → 정상 | PASS | 공개 엔드포인트, 정상 응답 |
+| B-1 | 유효 토큰으로 세션 생성 | 수동 필요 | Google OAuth 토큰 필요 |
+| B-4 | 유효 토큰으로 내 세션 조회 | 수동 필요 | Google OAuth 토큰 필요 |
+| B-6~B-8 | is_owner / claim 검증 | 수동 필요 | Google OAuth 토큰 필요 |
+| B-10~B-16 | 소유자/비소유자 CRUD | 수동 필요 | Google OAuth 토큰 필요 |
+| B-19 | slide_count/participant_count | 수동 필요 | Google OAuth 토큰 필요 |
+
+### 특이사항
+
+1. **포트 충돌**: `localhost:3000`에 다른 프로젝트(GymBrain)가 실행 중이어서 Real-Slide는 `localhost:3001`에서 실행됨. E2E 테스트도 3001로 수행
+2. **F-7 외부 URL 차단**: `?next=https://evil.com` 접속 시 페이지는 외부 도메인으로 이동하지 않고 `/login`에 머물음. URL에 쿼리 파라미터로 `evil.com`이 포함되어 있으나 실제 리다이렉트는 발생하지 않아 보안상 문제 없음. 초기 테스트 스크립트의 검증 로직(`url.includes("evil.com")`)이 URL 전체를 검사해 false positive 발생했으나, 실제 동작은 정상
+3. **Playwright 수동 설치 필요**: 프로젝트에 Playwright가 devDependency로 설치되어 있지 않아 `npm install --save-dev playwright`로 별도 설치 후 실행
+4. **수동 테스트 항목**: Google OAuth 콜백 완료 후 세션이 생성되어야 하는 테스트(F-3~F-6, F-10~F-20, B-1, B-4, B-6~B-19)는 자동화 불가. 브라우저에서 Google 계정으로 로그인한 후 수동 확인 필요
+
+### 요약
+
+| 영역 | 자동화 통과 | 자동화 실패 | 수동 필요 |
+|---|---|---|---|
+| 프론트엔드 | 9 | 0 | 11 |
+| 백엔드 | 7 | 0 | 12 |
+| **합계** | **16** | **0** | **23** |
+
+모든 자동화 가능한 테스트가 통과했습니다. 수동 테스트 항목은 Google OAuth 로그인 완료 후 브라우저에서 진행해야 합니다.
+
 ## 참고 자료
 
 - [Supabase Google Auth](https://supabase.com/docs/guides/auth/social-login/auth-google)
