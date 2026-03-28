@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useState,
@@ -14,12 +15,16 @@ interface AuthContextValue {
   user: User | null;
   userId: string | null;
   loading: boolean;
+  signInWithGoogle: (redirectTo?: string) => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue>({
   user: null,
   userId: null,
   loading: true,
+  signInWithGoogle: async () => {},
+  signOut: async () => {},
 });
 
 export function AuthContextProvider({ children }: { children: ReactNode }) {
@@ -27,7 +32,6 @@ export function AuthContextProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 기존 세션 확인, 없으면 익명 로그인
     const initAuth = async () => {
       const {
         data: { session },
@@ -35,18 +39,12 @@ export function AuthContextProvider({ children }: { children: ReactNode }) {
 
       if (session?.user) {
         setUser(session.user);
-      } else {
-        const { data } = await supabase.auth.signInAnonymously();
-        if (data.user) {
-          setUser(data.user);
-        }
       }
       setLoading(false);
     };
 
     initAuth();
 
-    // 인증 상태 변화 리스너
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -57,9 +55,24 @@ export function AuthContextProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  const signInWithGoogle = useCallback(async (redirectTo?: string) => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: redirectTo ?? `${window.location.origin}/login`,
+      },
+    });
+    if (error) throw error;
+  }, []);
+
+  const signOut = useCallback(async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+  }, []);
+
   return (
     <AuthContext.Provider
-      value={{ user, userId: user?.id ?? null, loading }}
+      value={{ user, userId: user?.id ?? null, loading, signInWithGoogle, signOut }}
     >
       {children}
     </AuthContext.Provider>
