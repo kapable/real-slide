@@ -93,25 +93,30 @@ export default function Home() {
             </div>
             <span className="text-xl font-bold tracking-tight">Real-Slide</span>
           </Link>
-          <nav className="flex items-center gap-3">
+          <nav className="flex items-center gap-2">
             <Button asChild variant="default" size="sm">
-              <Link href="/creator">지금 시작하기</Link>
+              <Link href="/creator">
+                <span className="hidden sm:inline">지금 시작하기</span>
+                <Zap className="h-4 w-4 sm:hidden" />
+              </Link>
             </Button>
             <Button asChild variant="outline" size="sm">
-              <Link href="/join">세션 참여하기</Link>
+              <Link href="/join">
+                <span className="hidden sm:inline">세션 참여하기</span>
+                <Users className="h-4 w-4 sm:hidden" />
+              </Link>
             </Button>
             {!authLoading && user ? (
-              <Button asChild variant="outline" size="sm" className="gap-1.5">
+              <Button asChild variant="outline" size="icon" className="h-9 w-9">
                 <Link href="/admin">
                   <Shield className="h-4 w-4" />
-                  관리
                 </Link>
               </Button>
             ) : !authLoading ? (
               <Button asChild variant="ghost" size="sm" className="gap-1.5">
                 <Link href="/login">
                   <LogIn className="h-4 w-4" />
-                  로그인
+                  <span className="hidden sm:inline">로그인</span>
                 </Link>
               </Button>
             ) : null}

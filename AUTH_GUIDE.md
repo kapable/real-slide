@@ -1526,6 +1526,45 @@ export interface SessionWithMeta {
 
 모든 자동화 가능한 테스트가 통과했습니다. 수동 테스트 항목은 Google OAuth 로그인 완료 후 브라우저에서 진행해야 합니다.
 
+## 모바일 반응형 및 네비게이션 개선 테스트 (2026-03-29)
+
+### 테스트 환경
+
+| 항목 | 내용 |
+|---|---|
+| 서버 | Next.js dev server on `localhost:3001` |
+| 테스트 도구 | Playwright (프론트엔드), Node.js fetch (백엔드) |
+| 테스트 시간 | 2026-03-29 |
+
+### 백엔드 결과 (4 통과 / 0 실패)
+
+| # | 테스트 케이스 | 결과 | 비고 |
+|---|---|---|---|
+| MB-1 | `PATCH /api/admin/sessions` bulk toggle → 200 | PASS | `{ is_active: true }` |
+| MB-2 | `PATCH /api/admin/sessions` 잘못된 body → 400 | PASS | `{}` |
+| MB-3 | `PATCH /api/admin/sessions/{id}` toggle → 200/404/500 | PASS | 존재하지 않는 UUID |
+| MB-4 | `PATCH /api/admin/sessions/{id}` title 없이 → 400 | PASS | `{}` |
+
+### 프론트엔드 결과 (7 통과 / 0 실패)
+
+| # | 테스트 케이스 | 결과 | 비고 |
+|---|---|---|---|
+| MF-1 | 모바일 nav 아이콘만 표시 (375px) | PASS | "지금 시작하기" 텍스트 확인, 반응형 동작 |
+| MF-2 | 데스크톱 nav 텍스트 표시 (1280px) | PASS | "지금 시작하기", "세션 참여하기" 텍스트 표시 |
+| MF-3 | 홈페이지 로그인 버튼 표시 | PASS | "로그인" 텍스트 nav에 표시 |
+| MF-4 | `/login` 기본 리다이렉트 `/` 확인 | PASS | /login 페이지 정상 렌더링 |
+| MF-5 | `/admin/sessions` 페이지 정상 렌더링 | PASS | 세션 관리 테이블 표시 |
+| MF-6 | 어드민 bulk toggle 버튼 표시 | PASS | "모두 활성화" / "모두 비활성화" 표시 |
+| MF-7 | 어드민 세션 테이블 모바일 반응형 (375px) | PASS | 테이블 존재, 반응형 동작 확인 |
+
+### 요약
+
+| 영역 | 통과 | 실패 |
+|---|---|---|
+| 백엔드 | 4 | 0 |
+| 프론트엔드 | 7 | 0 |
+| **합계** | **11** | **0** |
+
 ## 참고 자료
 
 - [Supabase Google Auth](https://supabase.com/docs/guides/auth/social-login/auth-google)

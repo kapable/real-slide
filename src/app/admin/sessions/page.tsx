@@ -321,9 +321,9 @@ export default function SessionsPage() {
 
       {/* Table */}
       <Card>
-        <CardHeader className="flex-row items-center justify-between space-y-0">
+        <CardHeader className="flex-row items-center justify-between space-y-0 pb-4">
           <CardTitle className="text-lg">{t.admin.sessions.sessionList}</CardTitle>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -332,7 +332,8 @@ export default function SessionsPage() {
               onClick={() => handleToggleAll(true)}
             >
               {isTogglingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Power className="h-3.5 w-3.5" />}
-              모두 활성화
+              <span className="hidden sm:inline">모두 활성화</span>
+              <span className="sm:hidden">ON</span>
             </Button>
             <Button
               variant="outline"
@@ -342,7 +343,8 @@ export default function SessionsPage() {
               onClick={() => handleToggleAll(false)}
             >
               {isTogglingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PowerOff className="h-3.5 w-3.5" />}
-              모두 비활성화
+              <span className="hidden sm:inline">모두 비활성화</span>
+              <span className="sm:hidden">OFF</span>
             </Button>
           </div>
         </CardHeader>
@@ -362,11 +364,11 @@ export default function SessionsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>{t.admin.sessions.table.name}</TableHead>
-                      <TableHead>{t.admin.sessions.table.code}</TableHead>
-                      <TableHead>{t.admin.sessions.table.status}</TableHead>
+                      <TableHead className="min-w-[120px]">{t.admin.sessions.table.name}</TableHead>
+                      <TableHead className="hidden md:table-cell">{t.admin.sessions.table.code}</TableHead>
+                      <TableHead className="min-w-[100px]">{t.admin.sessions.table.status}</TableHead>
                       <TableHead
-                        className="text-center cursor-pointer select-none"
+                        className="hidden sm:table-cell text-center cursor-pointer select-none"
                         onClick={() => handleSort("participantCount")}
                       >
                         <div className="flex items-center justify-center gap-1">
@@ -375,7 +377,7 @@ export default function SessionsPage() {
                         </div>
                       </TableHead>
                       <TableHead
-                        className="cursor-pointer select-none"
+                        className="hidden sm:table-cell cursor-pointer select-none"
                         onClick={() => handleSort("created_at")}
                       >
                         <div className="flex items-center gap-1">
@@ -390,7 +392,7 @@ export default function SessionsPage() {
                     {sessions.map((session) => (
                       <TableRow key={session.id}>
                         <TableCell className="font-medium">{session.title}</TableCell>
-                        <TableCell>
+                        <TableCell className="hidden md:table-cell">
                           <code className="text-xs bg-muted px-2 py-1 rounded">
                             {session.share_code}
                           </code>
@@ -409,10 +411,10 @@ export default function SessionsPage() {
                             />
                           </div>
                         </TableCell>
-                        <TableCell className="text-center">
+                        <TableCell className="hidden sm:table-cell text-center">
                           {session.participantCount}
                         </TableCell>
-                        <TableCell>{formatDate(session.created_at)}</TableCell>
+                        <TableCell className="hidden sm:table-cell">{formatDate(session.created_at)}</TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
