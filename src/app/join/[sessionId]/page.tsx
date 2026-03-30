@@ -41,6 +41,7 @@ function ParticipantView() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [reconnectAttempt, setReconnectAttempt] = useState(0);
   const resolvedRef = useRef("");
   const channelRef = useRef<any>(null);
 
@@ -71,6 +72,15 @@ function ParticipantView() {
 
         resolvedRef.current = actualSessionId;
         setResolvedSessionId(actualSessionId);
+
+        // Fetch session to get current slide index
+        const sessionRes = await fetch(`/api/sessions/${actualSessionId}`);
+        if (sessionRes.ok) {
+          const sessionData = await sessionRes.json();
+          if (typeof sessionData.current_slide_index === "number") {
+            setCurrentSlideIndex(sessionData.current_slide_index);
+          }
+        }
 
         const storageKey = `rs-participant-${actualSessionId}`;
         const storedId = localStorage.getItem(storageKey);
@@ -124,12 +134,30 @@ function ParticipantView() {
       })
       .on("broadcast", { event: "slide:result" }, (payload: any) => {
         const { slideId, showResult } = payload.payload;
-        setSlides(currentSlides => 
+        setSlides(currentSlides =>
           currentSlides.map(s => s.id === slideId ? { ...s, show_result: showResult } : s)
         );
       })
       .subscribe((status) => {
         console.log(`[Participant] Channel ${channelName} status: ${status}`);
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          // Reconnect after 3 seconds by triggering useEffect re-run
+          setTimeout(() => setReconnectAttempt(prev => prev + 1), 3000);
+        }
+        if (status === "SUBSCRIBED") {
+          // Re-sync current slide from DB on (re)connect
+          const sid = resolvedRef.current;
+          if (sid) {
+            fetch(`/api/sessions/${sid}`)
+              .then(r => r.ok ? r.json() : null)
+              .then(data => {
+                if (data && typeof data.current_slide_index === "number") {
+                  setCurrentSlideIndex(data.current_slide_index);
+                }
+              })
+              .catch(() => {});
+          }
+        }
       });
 
     channelRef.current = channel;
@@ -139,7 +167,7 @@ function ParticipantView() {
       supabase.removeChannel(channel);
       channelRef.current = null;
     };
-  }, [resolvedSessionId]);
+  }, [resolvedSessionId, reconnectAttempt]);
 
   // Broadcast function to pass to child components (avoids duplicate channel)
   const broadcastFn = (event: string, payload: any) => {

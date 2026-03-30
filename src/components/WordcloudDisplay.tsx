@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import { WordcloudItem } from "@/types";
-import { Cloud, Sparkles, Trash2, X } from "lucide-react";
+import { Sparkles, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/lib/supabase";
 
 interface WordcloudDisplayProps {
   slideId: string;
@@ -69,11 +70,34 @@ export default function WordcloudDisplay({
     fetchWordcloud();
   }, [slideId, maxWords]);
 
-  // Polling
+  // Polling (fallback, slower interval since realtime is primary)
   useEffect(() => {
-    const interval = setInterval(fetchWordcloud, 2000);
+    const interval = setInterval(fetchWordcloud, 5000);
     return () => clearInterval(interval);
-  }, [slideId, maxWords, prevItemIds]);
+  }, [slideId, maxWords]);
+
+  // Realtime subscription for immediate updates
+  useEffect(() => {
+    if (!slideId) return;
+
+    const channel = supabase
+      .channel(`wordcloud-${slideId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "wordcloud_items", filter: `slide_id=eq.${slideId}` },
+        () => fetchWordcloud()
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "wordcloud_items", filter: `slide_id=eq.${slideId}` },
+        () => fetchWordcloud()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [slideId]);
 
   const handleDeleteWord = async (wordId: string) => {
     try {

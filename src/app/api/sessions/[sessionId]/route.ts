@@ -39,6 +39,41 @@ export async function GET(
   }
 }
 
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ sessionId: string }> },
+) {
+  try {
+    const { sessionId } = await params;
+    const body = await request.json();
+    const { current_slide_index } = body;
+
+    if (typeof current_slide_index !== "number") {
+      return NextResponse.json(
+        { error: "current_slide_index is required" },
+        { status: 400 },
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const { error } = await supabase
+      .from("sessions")
+      .update({ current_slide_index })
+      .eq("id", sessionId);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "서버 오류" },
+      { status: 500 },
+    );
+  }
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ sessionId: string }> },

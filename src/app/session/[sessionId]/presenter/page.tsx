@@ -90,6 +90,11 @@ export default function PresenterPage() {
 
         setShareCode(sessionData.share_code);
 
+        // Restore persisted slide index
+        if (typeof sessionData.current_slide_index === "number") {
+          setCurrentSlideIndex(sessionData.current_slide_index);
+        }
+
         // 소유권 확인: 다른 사용자의 세션이면 참가자로 리다이렉트
         if (sessionData.created_by && sessionData.created_by !== userId) {
           router.replace(`/join/${sessionData.share_code}`);
@@ -239,6 +244,12 @@ export default function PresenterPage() {
       payload: { slideIndex: index },
     });
     setVotes({});
+    // Persist slide index to DB (fire-and-forget)
+    fetch(`/api/sessions/${sessionId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ current_slide_index: index }),
+    }).catch(() => {});
   };
 
   const currentSlide = slides[currentSlideIndex];

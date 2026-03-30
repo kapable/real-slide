@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { createClient, RealtimeChannel } from "@supabase/supabase-js";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+import { RealtimeChannel } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
 
 interface SubscriptionConfig {
   channel: string;
@@ -24,8 +22,6 @@ export function useSupabaseSubscription(config: SubscriptionConfig) {
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
     channelRef.current = supabase
       .channel(config.channel)
       .on(
@@ -74,8 +70,6 @@ export function useSupabaseSubscriptions(
   const channelsRef = useRef<RealtimeChannel[]>([]);
 
   useEffect(() => {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
     configs.forEach((config) => {
       const channel = supabase
         .channel(config.channel)

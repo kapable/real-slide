@@ -8,6 +8,7 @@ export interface Session {
   updated_at: string;
   is_owner?: boolean;
   is_active: boolean;
+  current_slide_index: number;
 }
 
 export interface SessionWithMeta {
