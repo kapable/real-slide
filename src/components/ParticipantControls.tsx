@@ -126,12 +126,18 @@ export default function ParticipantControls({
 
       if (res.ok) {
         setWordcloudInput("");
-      } else if (res.status === 409) {
-        const errorData = await res.json();
-        alert(errorData.error || "이미 답변을 제출하셨습니다.");
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        if (res.status === 409) {
+          alert(errorData.error || "이미 답변을 제출하셨습니다.");
+        } else {
+          console.error("Wordcloud submit failed:", res.status, errorData);
+          alert(errorData.error || "제출에 실패했습니다. 다시 시도해주세요.");
+        }
       }
     } catch (error) {
       console.error("Error submitting wordcloud:", error);
+      alert("네트워크 오류가 발생했습니다.");
     } finally {
       setIsLoading(false);
     }
