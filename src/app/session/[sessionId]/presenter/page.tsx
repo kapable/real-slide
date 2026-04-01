@@ -45,20 +45,30 @@ import {
   Eye,
   EyeOff,
   Check,
+  Copy,
   QrCode,
   Loader2,
-  Hash
+  Hash,
+  MoreVertical
 } from "lucide-react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { FullScreenPresentation } from "@/components/FullScreenPresentation";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function PresenterPage() {
   const router = useRouter();
   const params = useParams();
   const sessionId = params.sessionId as string;
   const { userId, loading: authLoading } = useAuth();
+  const isMobile = useIsMobile();
 
   const [slides, setSlides] = useState<Slide[]>([]);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
@@ -312,36 +322,51 @@ export default function PresenterPage() {
 
         <SidebarInset className="flex flex-col flex-1 overflow-hidden">
           {/* Header */}
-          <header className="h-14 flex items-center justify-between px-6 border-b bg-background/50 backdrop-blur-md sticky top-0 z-10">
-            <div className="flex items-center gap-4">
-              <h2 className="font-bold tracking-tight">발표 제어 센터</h2>
+          <header className="h-14 flex items-center justify-between px-3 sm:px-6 border-b bg-background/50 backdrop-blur-md sticky top-0 z-10">
+            <div className="flex items-center gap-2 sm:gap-4">
+              <h2 className="font-bold tracking-tight hidden sm:block">발표 제어 센터</h2>
               {currentSlide && (
-                <Badge variant="secondary" className="px-2 py-0 h-5 text-[10px] font-bold uppercase tracking-widest">
+                <Badge variant="secondary" className="px-2 py-0 h-5 text-[10px] font-bold uppercase tracking-widest hidden sm:flex">
                   {currentSlide.type} Mode
                 </Badge>
+              )}
+              {/* Mobile: share code inline */}
+              {isMobile && shareCode && (
+                <button
+                  className="flex items-center gap-1.5 text-xs font-mono font-bold text-primary bg-primary/10 px-2 py-1 rounded-lg"
+                  onClick={() => {
+                    navigator.clipboard.writeText(shareCode);
+                    setIsCopied(true);
+                    setTimeout(() => setIsCopied(false), 2000);
+                  }}
+                >
+                  <Hash className="h-3 w-3" />
+                  {shareCode}
+                  {isCopied ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3" />}
+                </button>
               )}
             </div>
             <div className="flex-1 flex justify-center items-center">
               <div className="flex items-center gap-1 bg-muted/50 rounded-xl p-1 border shadow-inner">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-8 w-8 rounded-lg hover:bg-background transition-all" 
-                  onClick={handlePrevSlide} 
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-lg hover:bg-background transition-all"
+                  onClick={handlePrevSlide}
                   disabled={currentSlideIndex === 0}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <div className="px-3 flex items-center gap-2 min-w-[80px] justify-center">
+                <div className="px-2 sm:px-3 flex items-center gap-2 min-w-[60px] sm:min-w-[80px] justify-center">
                   <span className="text-xs font-bold text-primary">{currentSlideIndex + 1}</span>
                   <span className="text-[10px] text-muted-foreground/30 font-black">/</span>
                   <span className="text-xs font-bold text-muted-foreground">{slides.length}</span>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-8 w-8 rounded-lg hover:bg-background transition-all" 
-                  onClick={handleNextSlide} 
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-lg hover:bg-background transition-all"
+                  onClick={handleNextSlide}
                   disabled={currentSlideIndex >= slides.length - 1}
                 >
                   <ChevronRight className="h-4 w-4" />
@@ -349,6 +374,8 @@ export default function PresenterPage() {
               </div>
             </div>
 
+            {/* Desktop: full button row */}
+            {!isMobile && (
             <div className="flex items-center gap-2">
               <Dialog>
                 <DialogTrigger asChild>
@@ -363,10 +390,10 @@ export default function PresenterPage() {
                       <DialogTitle className="text-xl font-bold tracking-tight text-slate-900">참여 QR 코드</DialogTitle>
                       <p className="text-xs text-slate-400 font-medium">스마트폰으로 스캔하여 바로 접속하세요</p>
                     </div>
-                    
+
                     <div className="relative group p-4 bg-slate-50 rounded-2xl border-2 border-slate-100">
-                       <img 
-                         src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(`${window.location.origin}/join/${shareCode}`)}&size=240x240&bgcolor=f8fafc&color=0f172a&margin=10`} 
+                       <img
+                         src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(`${window.location.origin}/join/${shareCode}`)}&size=240x240&bgcolor=f8fafc&color=0f172a&margin=10`}
                          alt="Session QR Code"
                          className="w-60 h-60 min-w-60 min-h-60 rounded-lg shadow-sm group-hover:scale-[1.02] transition-transform duration-300"
                        />
@@ -385,10 +412,10 @@ export default function PresenterPage() {
                        <p className="text-[10px] text-slate-400 font-black tracking-widest uppercase">Room Access Code</p>
                     </div>
                   </div>
-                  
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="h-10 text-white hover:bg-white/10 rounded-full gap-2 px-6"
                     onClick={() => {
                        const url = `${window.location.origin}/join/${shareCode}`;
@@ -403,13 +430,13 @@ export default function PresenterPage() {
                 </DialogContent>
               </Dialog>
 
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 className={cn(
                   "h-8 gap-2 transition-all duration-200",
                   isCopied && "text-green-600 bg-green-50 dark:bg-green-900/20"
-                )} 
+                )}
                 onClick={() => {
                   const url = `${window.location.origin}/join/${shareCode}`;
                   navigator.clipboard.writeText(url);
@@ -420,9 +447,9 @@ export default function PresenterPage() {
                 {isCopied ? <Check className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
                 <span className="text-xs">{isCopied ? "복사됨!" : "링크 복사"}</span>
               </Button>
-              <Button 
-                variant="default" 
-                size="sm" 
+              <Button
+                variant="default"
+                size="sm"
                 className="h-8 gap-2 shadow-lg shadow-primary/20 bg-primary/10 text-primary border-primary/20 hover:bg-primary hover:text-white"
                 onClick={() => setIsPresentationOpen(true)}
               >
@@ -436,13 +463,104 @@ export default function PresenterPage() {
                 </Link>
               </Button>
             </div>
+            )}
+
+            {/* Mobile: more menu dropdown */}
+            {isMobile && (
+            <div className="flex items-center gap-1">
+              <Button
+                variant="default"
+                size="icon"
+                className="h-8 w-8 shadow-lg shadow-primary/20 bg-primary/10 text-primary border-primary/20 hover:bg-primary hover:text-white"
+                onClick={() => setIsPresentationOpen(true)}
+              >
+                <Monitor className="h-3.5 w-3.5" />
+              </Button>
+              <Dialog>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DialogTrigger asChild>
+                      <DropdownMenuItem className="gap-2">
+                        <QrCode className="h-4 w-4" />
+                        QR 코드
+                      </DropdownMenuItem>
+                    </DialogTrigger>
+                    <DropdownMenuItem className="gap-2" onClick={() => {
+                      const url = `${window.location.origin}/join/${shareCode}`;
+                      navigator.clipboard.writeText(url);
+                      setIsCopied(true);
+                      setTimeout(() => setIsCopied(false), 2000);
+                    }}>
+                      {isCopied ? <Check className="h-4 w-4 text-green-600" /> : <Share2 className="h-4 w-4" />}
+                      {isCopied ? "복사됨!" : "링크 복사"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="gap-2" asChild>
+                      <Link href={`/join/${sessionId}`} target="_blank">
+                        <Maximize2 className="h-4 w-4" />
+                        참여자 뷰 열기
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <DialogContent className="sm:max-w-[400px] p-0 border-none bg-transparent shadow-none flex flex-col items-center justify-center gap-6">
+                  <div className="bg-white p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.2)] flex flex-col items-center gap-6 animate-in zoom-in-95 duration-300">
+                    <div className="flex flex-col items-center gap-1 text-center">
+                      <DialogTitle className="text-xl font-bold tracking-tight text-slate-900">참여 QR 코드</DialogTitle>
+                      <p className="text-xs text-slate-400 font-medium">스마트폰으로 스캔하여 바로 접속하세요</p>
+                    </div>
+
+                    <div className="relative group p-4 bg-slate-50 rounded-2xl border-2 border-slate-100">
+                       <img
+                         src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(`${window.location.origin}/join/${shareCode}`)}&size=240x240&bgcolor=f8fafc&color=0f172a&margin=10`}
+                         alt="Session QR Code"
+                         className="w-60 h-60 min-w-60 min-h-60 rounded-lg shadow-sm group-hover:scale-[1.02] transition-transform duration-300"
+                       />
+                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                         <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-xl border border-slate-100 italic text-[10px] font-bold text-slate-800">
+                           {shareCode}
+                         </div>
+                       </div>
+                    </div>
+
+                    <div className="flex flex-col items-center gap-2">
+                       <div className="bg-primary/5 px-4 py-2 rounded-full border border-primary/10 flex items-center gap-2">
+                         <Hash className="h-3 w-3 text-primary" />
+                         <span className="text-lg font-mono font-bold tracking-[0.3em] text-primary">{shareCode}</span>
+                       </div>
+                       <p className="text-[10px] text-slate-400 font-black tracking-widest uppercase">Room Access Code</p>
+                    </div>
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-10 text-white hover:bg-white/10 rounded-full gap-2 px-6"
+                    onClick={() => {
+                       const url = `${window.location.origin}/join/${shareCode}`;
+                       navigator.clipboard.writeText(url);
+                       setIsCopied(true);
+                       setTimeout(() => setIsCopied(false), 2000);
+                    }}
+                  >
+                    {isCopied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
+                    <span className="font-bold">{isCopied ? "복사완료!" : "링크 복사하기"}</span>
+                  </Button>
+                </DialogContent>
+              </Dialog>
+            </div>
+            )}
           </header>
 
-          <main className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 scrollbar-hide">
-            <div className="flex flex-col lg:flex-row gap-6">
+          <main className="flex-1 overflow-y-auto p-3 sm:p-6 flex flex-col gap-3 sm:gap-6 scrollbar-hide">
+            <div className="flex flex-col lg:flex-row gap-3 sm:gap-6">
               
               {/* Center Column: Slide + Nav + Results */}
-              <div className="flex-1 flex flex-col gap-6 min-w-0">
+              <div className="flex-1 flex flex-col gap-3 sm:gap-6 min-w-0">
                 <div className="relative aspect-video w-full group">
                   {currentSlide ? (
                     <SlidePresentation
@@ -471,8 +589,8 @@ export default function PresenterPage() {
 
                 {/* Vote/Quiz Results (only for vote/quiz slides) */}
                 {currentSlide && (currentSlide.type === "vote" || currentSlide.type === "quiz") && (
-                  <Card className="shadow-xl shadow-primary/5 border-none p-6 space-y-6">
-                    <div className="flex items-center justify-between">
+                  <Card className="shadow-xl shadow-primary/5 border-none p-3 sm:p-6 space-y-3 sm:space-y-6">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
                       <div className="flex items-center gap-2">
                         <BarChart2 className="h-4 w-4 text-primary" />
                         <h3 className="font-bold text-sm uppercase tracking-tight">실시간 통계</h3>
@@ -505,11 +623,11 @@ export default function PresenterPage() {
               </div>
 
               {/* Right Column: Interaction Panel */}
-              <div className="w-full lg:w-80 flex flex-col gap-6 flex-shrink-0">
-                <div className="h-[280px]">
+              <div className="w-full lg:w-80 flex flex-col gap-3 sm:gap-6 flex-shrink-0">
+                <div className="h-[180px] sm:h-[280px]">
                   <HandsUpPanel sessionId={sessionId} />
                 </div>
-                <div className="flex-1 min-h-[400px]">
+                <div className="flex-1 min-h-[250px] sm:min-h-[400px]">
                   <CommentSection
                     slideId={currentSlide?.id || ""}
                     participantId={presenterId}
@@ -522,7 +640,7 @@ export default function PresenterPage() {
             {/* Full-width Wordcloud (below the 2-column layout) */}
             {currentSlide && currentSlide.type === "slide" && (
               <div className="pb-6">
-                <WordcloudDisplay slideId={currentSlide.id} isPresenter={true} className="shadow-xl shadow-blue-500/5 border-none min-h-[450px]" />
+                <WordcloudDisplay slideId={currentSlide.id} isPresenter={true} className="shadow-xl shadow-blue-500/5 border-none min-h-[250px] sm:min-h-[450px]" />
               </div>
             )}
           </main>
