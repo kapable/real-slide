@@ -94,6 +94,9 @@ export default function Home() {
             <span className="text-xl font-bold tracking-tight">Real-Slide</span>
           </Link>
           <nav className="flex items-center gap-2">
+            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+              <Link href="/pricing">요금제</Link>
+            </Button>
             <Button asChild variant="default" size="sm">
               <Link href="/creator">
                 <span className="hidden sm:inline">지금 시작하기</span>
@@ -198,6 +201,7 @@ export default function Home() {
           </div>
           <p className="text-sm text-muted-foreground">© 2026 Real-Slide. All rights reserved.</p>
           <div className="flex gap-6">
+            <Link href="/pricing" className="text-sm text-muted-foreground hover:text-foreground">요금제</Link>
             <Link href="#" className="text-sm text-muted-foreground hover:text-foreground">Privacy</Link>
             <Link href="#" className="text-sm text-muted-foreground hover:text-foreground">Terms</Link>
           </div>
