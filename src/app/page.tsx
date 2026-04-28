@@ -149,12 +149,6 @@ export default function Home() {
             </Button>
           </div>
 
-          <div className="pt-12 relative w-full max-w-5xl">
-            <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 to-purple-500/20 blur-3xl rounded-[2rem] -z-10 opacity-50" />
-            <div className="glass rounded-2xl border glass-shadow overflow-hidden p-2 aspect-[16/10] flex items-center justify-center text-muted-foreground font-medium italic">
-              Dashboard Preview Snapshot
-            </div>
-          </div>
         </section>
 
         {/* My Sessions */}
